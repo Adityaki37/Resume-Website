@@ -1,9 +1,9 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Github, Linkedin, Mail, ExternalLink, ArrowRight, Monitor, ChevronRight } from 'lucide-react';
+import { Github, Linkedin, Mail, ExternalLink, ArrowRight, Monitor, ChevronRight, Menu, X } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, memo } from 'react';
 import { resumeData } from '@/data/resume';
 import { Link as ScrollLink } from 'react-scroll';
 
@@ -16,7 +16,7 @@ const ARROW_CONFIG = {
   shouldRandomizeWhileLoading: false
 };
 
-const HandDrawnArrow = ({ className, style, type = 0 }: { className?: string; style?: React.CSSProperties; type?: number }) => {
+const HandDrawnArrow = memo(({ className, style, type = 0 }: { className?: string; style?: React.CSSProperties; type?: number }) => {
   const paths = [
     "M15 50 L 85 50 L 65 35 M 85 50 L 65 65", // Clean Horizontal (Right) - Primary Enter
     "M10 10 Q 50 90 90 10 M 70 30 L 90 10 L 70 5", // Deep Swoop
@@ -52,9 +52,10 @@ const HandDrawnArrow = ({ className, style, type = 0 }: { className?: string; st
       />
     </svg>
   );
-};
+});
+HandDrawnArrow.displayName = 'HandDrawnArrow';
 
-const ArrowStorm = ({ count = ARROW_CONFIG.count }: { count?: number }) => {
+const ArrowStorm = memo(({ count = ARROW_CONFIG.count }: { count?: number }) => {
   const arrows = useMemo(() => {
     return Array.from({ length: count }).map((_, i) => ({
       id: i,
@@ -70,7 +71,7 @@ const ArrowStorm = ({ count = ARROW_CONFIG.count }: { count?: number }) => {
   }, [count]);
 
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden text-black/40">
+    <div className="absolute inset-0 pointer-events-none overflow-hidden text-black/40" style={{ contentVisibility: 'auto' }}>
       {arrows.map((arrow) => (
         <div
           key={arrow.id}
@@ -80,7 +81,7 @@ const ArrowStorm = ({ count = ARROW_CONFIG.count }: { count?: number }) => {
             top: `${arrow.y}%`,
             transform: ARROW_CONFIG.isStill
               ? `rotate(${arrow.rotate}deg) scale(${arrow.scale})`
-              : undefined,
+              : `translate3d(0,0,0)`, // HW acceleration
             '--initial-x': `0px`,
             '--initial-y': `0px`,
             '--rotate': `${arrow.rotate}deg`,
@@ -88,6 +89,7 @@ const ArrowStorm = ({ count = ARROW_CONFIG.count }: { count?: number }) => {
             opacity: arrow.opacity,
             animationDelay: `${arrow.delay}s`,
             animationDuration: `${arrow.duration}s`,
+            contentVisibility: 'auto'
           } as any}
         >
           <HandDrawnArrow type={arrow.type} />
@@ -95,7 +97,8 @@ const ArrowStorm = ({ count = ARROW_CONFIG.count }: { count?: number }) => {
       ))}
     </div>
   );
-};
+});
+ArrowStorm.displayName = 'ArrowStorm';
 
 const SectionHeader = ({ title }: { title: string }) => (
   <div className="mb-12 flex flex-col items-center text-center">
@@ -105,7 +108,7 @@ const SectionHeader = ({ title }: { title: string }) => (
 );
 
 const ProjectCard = ({ item }: { item: any }) => (
-  <div className="group relative bg-[#f4f4f2]/50 backdrop-blur-sm border border-[#d0d0cc]/30 rounded-3xl p-8 hover:bg-black hover:text-white transition-all duration-500 shadow-sm hover:shadow-2xl flex flex-col h-full">
+  <div className="group relative bg-[#f4f4f2]/50 backdrop-blur-sm border border-[#d0d0cc]/30 rounded-3xl p-8 hover:bg-black hover:text-white transition-[background-color,color,transform,box-shadow,border-color] duration-500 shadow-sm hover:shadow-2xl flex flex-col h-full">
     <div className="flex justify-between items-start mb-6">
       <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-400 group-hover:text-zinc-500">{item.date}</span>
       <div className="w-10 h-10 rounded-full bg-black/5 group-hover:bg-white/10 flex items-center justify-center text-black group-hover:text-white transition-colors">
@@ -131,8 +134,8 @@ const ProjectCard = ({ item }: { item: any }) => (
 );
 
 const EducationItem = ({ item }: { item: any }) => (
-  <div className="relative pl-12 pb-16 border-l-2 border-[#d0d0cc]/30 last:pb-0">
-    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-black" />
+  <div className="relative pl-12 pb-16 last:pb-0">
+    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-black z-10" />
     <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 mb-4">
       <h3 className="text-2xl font-black text-black tracking-tight">{item.title}</h3>
       <span className="text-sm font-bold text-zinc-400 uppercase tracking-widest bg-zinc-50 px-3 py-1 rounded-full whitespace-nowrap">{item.date}</span>
@@ -150,8 +153,8 @@ const EducationItem = ({ item }: { item: any }) => (
 );
 
 const ExperienceItem = ({ item }: { item: any }) => (
-  <div className="relative pl-12 pb-16 border-l-2 border-[#d0d0cc]/30 last:pb-0">
-    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-black" />
+  <div className="relative pl-12 pb-16 last:pb-0">
+    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-black z-10" />
     <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 mb-4">
       <h3 className="text-2xl font-black text-black tracking-tight">{item.title}</h3>
       <span className="text-sm font-bold text-zinc-400 uppercase tracking-widest bg-zinc-50 px-3 py-1 rounded-full whitespace-nowrap">{item.date}</span>
@@ -170,6 +173,7 @@ const ExperienceItem = ({ item }: { item: any }) => (
 
 const Navbar = ({ containerId }: { containerId: string }) => {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     const container = document.getElementById(containerId);
@@ -189,32 +193,73 @@ const Navbar = ({ containerId }: { containerId: string }) => {
   ];
 
   return (
-    <motion.header
-      className={`fixed top-0 left-0 right-0 z-[120] transition-all duration-500 px-8 md:px-16 py-6 flex items-center justify-between ${isScrolled ? 'bg-white/80 backdrop-blur-xl border-b border-black/5 py-4' : 'bg-transparent'
-        }`}
-    >
-      <div className="text-xl font-black tracking-tighter text-black cursor-default">
-        Aditya Induri
-      </div>
-      <nav className="hidden md:flex items-center gap-8">
-        {navLinks.map((link) => (
-          <ScrollLink
-            key={link.to}
-            to={link.to}
-            containerId={containerId}
-            smooth={true}
-            duration={800}
-            offset={-100}
-            className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-400 hover:text-black cursor-pointer transition-colors"
+    <>
+      <motion.header
+        className={`fixed top-0 left-0 right-0 z-[120] transition-all duration-500 px-8 md:px-16 py-6 flex items-center justify-between ${isScrolled || isMenuOpen ? 'bg-white/80 backdrop-blur-xl border-b border-black/5 py-4' : 'bg-transparent'
+          }`}
+      >
+        <div className="text-xl font-black tracking-tighter text-black cursor-default">
+          Aditya Induri
+        </div>
+        <nav className="hidden md:flex items-center gap-8">
+          {navLinks.map((link) => (
+            <ScrollLink
+              key={link.to}
+              to={link.to}
+              containerId={containerId}
+              smooth={true}
+              duration={800}
+              offset={-100}
+              className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-400 hover:text-black cursor-pointer transition-colors"
+            >
+              {link.name}
+            </ScrollLink>
+          ))}
+        </nav>
+        <div className="md:hidden flex items-center gap-4">
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="p-2 text-black hover:bg-black/5 rounded-xl transition-colors"
           >
-            {link.name}
-          </ScrollLink>
-        ))}
-      </nav>
-      <div className="md:hidden flex items-center gap-4">
-        <Monitor className="w-5 h-5 text-black/20" />
-      </div>
-    </motion.header>
+            {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
+      </motion.header>
+
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed inset-0 z-[115] bg-white/95 backdrop-blur-2xl md:hidden pt-32 px-8"
+          >
+            <nav className="flex flex-col gap-8">
+              {navLinks.map((link, i) => (
+                <motion.div
+                  key={link.to}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                >
+                  <ScrollLink
+                    to={link.to}
+                    containerId={containerId}
+                    smooth={true}
+                    duration={800}
+                    offset={-80}
+                    onClick={() => setIsMenuOpen(false)}
+                    className="text-3xl font-black tracking-tighter uppercase italic text-zinc-400 hover:text-black transition-colors"
+                  >
+                    {link.name}
+                  </ScrollLink>
+                </motion.div>
+              ))}
+            </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 
@@ -259,7 +304,7 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
 
           {/* Global Arrow Storm */}
           <div className="absolute inset-0">
-            <ArrowStorm count={250} />
+            <ArrowStorm count={200} />
           </div>
         </div>
 
@@ -452,32 +497,29 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
           </section>
 
 
-          {/* Unified Timeline Container */}
-          <div className="space-y-48">
-            {/* Education Section */}
-            <section id="education" className="scroll-mt-24">
-              <SectionHeader title="Education" />
-              <div className="max-w-4xl mx-auto">
-                <div className="border-l-2 border-[#d0d0cc]/30 -mb-48 pb-48">
-                  {resumeData.filter(i => i.category === 'Education').map((item) => (
-                    <EducationItem key={item.id} item={item} />
-                  ))}
-                </div>
+          {/* Education Section */}
+          <section id="education" className="scroll-mt-24">
+            <SectionHeader title="Education" />
+            <div className="max-w-4xl mx-auto">
+              <div className="border-l-2 border-black/10">
+                {resumeData.filter(i => i.category === 'Education').map((item) => (
+                  <EducationItem key={item.id} item={item} />
+                ))}
               </div>
-            </section>
+            </div>
+          </section>
 
-            {/* Experience Section */}
-            <section id="experience" className="scroll-mt-24">
-              <SectionHeader title="Experience" />
-              <div className="max-w-4xl mx-auto">
-                <div className="border-l-2 border-[#d0d0cc]/30">
-                  {resumeData.filter(i => i.category === 'Experience').map((item) => (
-                    <ExperienceItem key={item.id} item={item} />
-                  ))}
-                </div>
+          {/* Experience Section */}
+          <section id="experience" className="scroll-mt-24 mt-48">
+            <SectionHeader title="Experience" />
+            <div className="max-w-4xl mx-auto">
+              <div className="border-l-2 border-black/10">
+                {resumeData.filter(i => i.category === 'Experience').map((item) => (
+                  <ExperienceItem key={item.id} item={item} />
+                ))}
               </div>
-            </section>
-          </div>
+            </div>
+          </section>
 
           {/* Projects Section */}
           <section id="projects" className="scroll-mt-24">
