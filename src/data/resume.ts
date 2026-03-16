@@ -41,6 +41,8 @@ export interface ResumeItem {
     rotationSpeed?: number;
     autoRotate?: boolean;
   };
+  // Optional image preview instead of 3D
+  imageUrl?: string;
 }
 
 export interface CameraConfig {
@@ -53,7 +55,7 @@ export interface CameraConfig {
 export const cameraConfig: CameraConfig = {
   minZoom: 0.5,
   maxZoom: 1.8,
-  recenterRotation: { yaw: -Math.PI / 4, pitch: 0.2 },
+  recenterRotation: { yaw: Math.PI / 4, pitch: 0.2 },
   recenterZoom: 1.0,
 };
 
@@ -96,6 +98,31 @@ export const resumeData: ResumeItem[] = [
       rotationSpeed: 0.005,
       autoRotate: true
     }
+  },
+
+  // 1.5 ABOUT ME (INTERNAL)
+  {
+    id: 'about-me',
+    title: 'Aditya Induri',
+    interestTitle: 'Profile',
+    category: 'Experience',
+    subtitle: 'Software Engineer & Innovator',
+    date: 'Founding Future Interfaces',
+    bullets: [
+      "I'm a software engineer passionate about creating immersive digital experiences that blur the line between utility and art.",
+      "Specializing in interactive 3D web applications, generative AI integration, and fintech prototypes.",
+      "Dedicated to driving innovation at the intersection of economics, finance, and technology."
+    ],
+    interestBullets: ['Bridging the gap between complex data and intuitive human-centric design.'],
+    imageUrl: '/Induri.Aditya_Headshot.jpg',
+    scale: 1,
+    hoverScale: 1,
+    glowEnabled: false,
+    rotation: [0, 0, 0],
+    position: [0, 0, 0],
+    shape: 'profile',
+    color: '#000000',
+    clickable: true
   },
 
   // 2. EXPERIENCE

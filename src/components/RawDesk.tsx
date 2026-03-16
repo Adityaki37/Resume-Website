@@ -12,11 +12,19 @@ interface InteractiveDeskProps {
   onSelect: (id: string | null, previewId?: string | null) => void;
   hoveredId: string | null;
   onHover: (id: string | null) => void;
+  onBack?: () => void;
+  onResume?: () => void;
+  onLoadProgress?: (progress: number) => void;
+  onLoadComplete?: () => void;
+  showCover?: boolean;
 }
 
 // modelMap removed - using centralized resumeData config
 
-export default function InteractiveDesk({ selectedId, onSelect, hoveredId, onHover }: InteractiveDeskProps) {
+export default function InteractiveDesk({
+  selectedId, onSelect, hoveredId, onHover, onBack, onResume,
+  onLoadProgress, onLoadComplete, showCover
+}: InteractiveDeskProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const selectedItem = useMemo(() => resumeData.find(i => i.id === selectedId), [selectedId]);
 
@@ -28,7 +36,8 @@ export default function InteractiveDesk({ selectedId, onSelect, hoveredId, onHov
   const zoomRef = useRef<number>(1.0);
   const isGrabbingRef = useRef(false);
   const prevMouseRef = useRef({ x: 0, y: 0 });
-  const rotationRef = useRef(cameraConfig.recenterRotation); // Initial camera angle
+  // Initialize yaw to 0 for cinematic entry, pitch from config
+  const rotationRef = useRef({ yaw: 0, pitch: cameraConfig.recenterRotation.pitch });
 
   useEffect(() => {
     if (selectedItem) {
@@ -43,6 +52,25 @@ export default function InteractiveDesk({ selectedId, onSelect, hoveredId, onHov
   useEffect(() => {
     hoveredRef.current = hoveredId;
   }, [hoveredId]);
+
+  // Handle Cinematic Entry Pan
+  useEffect(() => {
+    if (!showCover) {
+      gsap.to(rotationRef.current, {
+        yaw: cameraConfig.recenterRotation.yaw,
+        duration: 2.5,
+        ease: "power2.inOut"
+      });
+    }
+  }, [showCover]);
+
+  useEffect(() => {
+    hoveredRef.current = hoveredId;
+  }, [hoveredId]);
+
+  useEffect(() => {
+    THREE.Cache.enabled = true;
+  }, []);
 
   useEffect(() => {
     const mountNode = mountRef.current;
@@ -127,9 +155,26 @@ export default function InteractiveDesk({ selectedId, onSelect, hoveredId, onHov
     robotLight.position.set(0, 2, 2);
     scene.add(robotLight);
 
-    // 3. Environment (Sci-Fi Room only)
-    const loader = new GLTFLoader();
+    // 3. Shared Loading Infrastructure
+    const manager = new THREE.LoadingManager();
+    const loader = new GLTFLoader(manager);
+
+    manager.onProgress = (url, itemsLoaded, itemsTotal) => {
+      if (onLoadProgress) onLoadProgress(Math.round((itemsLoaded / itemsTotal) * 100));
+    };
+
+    manager.onLoad = () => {
+      // GPU Warm-up: Compile shaders and upload textures before signaling ready
+      renderer.compile(scene, camera);
+      // Give a tiny bit of time for GPU to settle
+      setTimeout(() => {
+        if (onLoadComplete) onLoadComplete();
+      }, 300);
+    };
+
+    // 4. Parallel Asset Loading
     const envUrl = '/sci-fi_interior_room.glb';
+    const deskUrl = '/cyberpunk_desk.glb';
 
     loader.load(envUrl, (gltf) => {
       const model = gltf.scene;
@@ -138,174 +183,306 @@ export default function InteractiveDesk({ selectedId, onSelect, hoveredId, onHov
           const mesh = child as THREE.Mesh;
           mesh.receiveShadow = true;
           mesh.castShadow = true;
-
-          // Ensure AO is active and using second UV set if present
           if (mesh.material && (mesh.material as any).aoMap) {
             (mesh.material as any).aoMapIntensity = 1.5;
           }
-
           const lowName = mesh.name.toLowerCase();
           const artifactKeywords = ['decal', 'grid', 'wireframe', 'tv', 'screen', 'part', 'mesh', 'joint', 'wire', 'torus', 'arc', 'torus', 'circle'];
-          if (artifactKeywords.some(key => lowName.includes(key))) {
-            mesh.visible = false;
-          }
+          if (artifactKeywords.some(key => lowName.includes(key))) mesh.visible = false;
         }
       });
-
       model.scale.set(2.0, 2.0, 2.0);
       model.position.y = -1;
+      scene.add(model);
+    });
 
-      // Re-integrated desk with precision targeting and centered pivot for the PC (Mesh #6)
-      loader.load('/cyberpunk_desk.glb', (deskGltf) => {
-        const desk = deskGltf.scene;
-        const delphiItem = resumeData.find(d => d.id === 'delphi');
-        const sffItem = resumeData.find(d => d.id === 'arbitrage-app');
+    loader.load(deskUrl, (deskGltf) => {
+      const desk = deskGltf.scene;
+      const delphiItem = resumeData.find(d => d.id === 'delphi');
+      const sffItem = resumeData.find(d => d.id === 'arbitrage-app');
 
-        // 1. Create a stable floor anchor for everything desk-related
-        const deskPivot = new THREE.Group();
-        deskPivot.name = 'deskPivot';
-        deskPivot.position.set(0, -1, 3.0); // Room floor level
-        deskPivot.rotation.y = Math.PI;
-        scene.add(deskPivot);
+      const deskPivot = new THREE.Group();
+      deskPivot.name = 'deskPivot';
+      deskPivot.position.set(0, -1, 3.0);
+      deskPivot.rotation.y = Math.PI;
+      scene.add(deskPivot);
 
-        // Position the desk frame so feet are at Y=0 locally (floor level)
-        desk.scale.set(0.8, 0.8, 0.8);
-        const dBox = new THREE.Box3().setFromObject(desk);
-        const dCenter = dBox.getCenter(new THREE.Vector3());
-        desk.position.set(-dCenter.x, -dBox.min.y, -dCenter.z);
-        deskPivot.add(desk);
+      // --- 3D SIGNPOST IMPLEMENTATION ---
+      const createSignpost = () => {
+        const signpostGroup = new THREE.Group();
+        signpostGroup.name = 'signpost';
 
-        // Helper to find specific meshes during traversal
-        const findMeshes = (): { pc?: THREE.Mesh, monitor?: THREE.Mesh, screen?: THREE.Mesh } => {
-          const found: { pc?: THREE.Mesh; monitor?: THREE.Mesh; screen?: THREE.Mesh } = {};
-          desk.traverse((child: any) => {
-            if (child.isMesh) {
-              if (child.name === 'Object_8') found.pc = child;
-              if (child.name === 'Object_5') found.monitor = child;
-              if (child.name === 'Object_6') found.screen = child;
-            }
+        // 1. The Post (Matte Black) - Positioned behind boards to avoid clipping
+        const postGeo = new THREE.CylinderGeometry(0.04, 0.04, 3.5, 12);
+        const postMat = new THREE.MeshStandardMaterial({
+          color: '#111111',
+          roughness: 0.8,
+          metalness: 0.1
+        });
+        const post = new THREE.Mesh(postGeo, postMat);
+        post.position.set(0, 0.75, -0.1);
+        post.castShadow = true;
+        post.receiveShadow = true;
+        signpostGroup.add(post);
+
+        // 2. Helper to create a board with unified "Sleek Opaque Matte Black" style
+        const createBoard = (text: string, id: string, y: number, rotationY: number, font: string = '900 72px Inter, sans-serif') => {
+          const boardGroup = new THREE.Group();
+          boardGroup.position.y = y;
+          boardGroup.rotation.y = rotationY;
+          boardGroup.rotation.z = (Math.random() - 0.5) * 0.05;
+
+          // Unified Opaque Matte Black Material - Thicker for premium look
+          const boardGeo = new THREE.BoxGeometry(1.6, 0.5, 0.1);
+          const boardMat = new THREE.MeshStandardMaterial({
+            color: '#111111',
+            roughness: 0.8,
+            metalness: 0.2
           });
-          return found;
+          const board = new THREE.Mesh(boardGeo, boardMat);
+          board.position.z = 0; // Board at local origin
+          board.castShadow = true;
+          board.receiveShadow = true;
+          board.userData = { id, type: 'signboard' };
+          boardGroup.add(board);
+
+          // Subtle Gray Border
+          const edges = new THREE.EdgesGeometry(boardGeo);
+          const borderMat = new THREE.LineBasicMaterial({ color: '#666666', transparent: true, opacity: 0.3 });
+          const border = new THREE.LineSegments(edges, borderMat);
+          boardGroup.add(border);
+
+          // Text Label using CanvasTexture
+          const canvas = document.createElement('canvas');
+          canvas.width = 512;
+          canvas.height = 128;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = font;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+          }
+          const texture = new THREE.CanvasTexture(canvas);
+          const labelGeo = new THREE.PlaneGeometry(1.4, 0.35);
+          const labelMat = new THREE.MeshBasicMaterial({
+            map: texture,
+            transparent: true,
+            // Basic material ensures identical brightness regardless of scene lighting
+          });
+          const label = new THREE.Mesh(labelGeo, labelMat);
+          label.position.z = 0.051; // Just in front of board surface (half-depth 0.05 + 0.001)
+          label.userData = { id, type: 'signboard' };
+          boardGroup.add(label);
+
+          // Interaction Light
+          const light = new THREE.PointLight(new THREE.Color('#ffffff'), 0, 2);
+          light.name = 'hoverLight';
+          light.position.set(0, 0, 0.5);
+          boardGroup.add(light);
+
+          signpostGroup.add(boardGroup);
+
+          meshes.push({
+            obj: boardGroup,
+            item: { id, color: '#ffffff', hoverScale: 1.35 } as any,
+            baseY: y,
+            isModel: true
+          });
         };
 
-        const targets = findMeshes();
+        const contactGroup = new THREE.Group();
+        contactGroup.position.set(0, 0.9, 0); // Spaced 0.7 from Resume PDF (1.6)
+        contactGroup.rotation.y = 0.4;
 
-        // 2. Handle PC (SFF-PC) - Mesh #6
-        if (targets.pc && sffItem) {
-          const activePC = targets.pc;
-          activePC.castShadow = true;
-          activePC.receiveShadow = true;
+        const totalWidth = 2.4;
+        const hWidth = 1.8; // Increased from 1.6 to fix clipping
+        const sWidth = 0.3; // Reduced from 0.4 to keep total width 2.4
+        const defaultFont = '900 72px Inter, sans-serif';
 
-          // Calculate center BEFORE detaching to ensure zero drift
-          const worldPos = new THREE.Vector3();
-          activePC.getWorldPosition(worldPos);
+        const createSegment = (type: 'text' | 'linkedin' | 'email', labelOrId: string, xPos: number, width: number, id: string, font: string = defaultFont) => {
+          const segmentGroup = new THREE.Group();
+          segmentGroup.position.x = xPos;
+          contactGroup.add(segmentGroup);
 
-          activePC.geometry.computeBoundingBox();
-          const meshCenter = new THREE.Vector3();
-          activePC.geometry.boundingBox?.getCenter(meshCenter);
-          const worldCenter = activePC.localToWorld(meshCenter.clone());
+          const boardGeo = new THREE.BoxGeometry(width, 0.5, 0.1);
+          const boardMat = new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.8, metalness: 0.2 });
+          const board = new THREE.Mesh(boardGeo, boardMat);
+          segmentGroup.add(board);
 
-          const pcPivot = new THREE.Group();
-          pcPivot.name = 'pcPivot';
+          // Standard font for text to match other boards
+          // Square canvases for icons to prevent stretching
+          const canvas = document.createElement('canvas');
+          if (type === 'text') {
+            canvas.width = 1024; // Doubled from 512 to provide massive breathing room
+            canvas.height = 256;
+          } else {
+            canvas.width = 256;
+            canvas.height = 256;
+          }
 
-          // Re-parent DIRECTLY to deskPivot for absolute stability
-          deskPivot.add(pcPivot);
-          pcPivot.position.copy(deskPivot.worldToLocal(worldCenter));
-          pcPivot.attach(activePC);
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
 
-          activePC.userData = { id: 'arbitrage-app' };
+            if (type === 'text') {
+              ctx.font = font; // Use passed custom font
+              ctx.fillText(labelOrId, canvas.width / 2, canvas.height / 2);
+            } else if (type === 'linkedin') {
+              ctx.font = 'bold 120px Inter, system-ui, sans-serif';
+              ctx.fillText('in', canvas.width / 2, canvas.height / 2);
+            } else if (type === 'email') {
+              ctx.strokeStyle = '#ffffff';
+              ctx.lineWidth = 10;
+              const w = 120;
+              const h = 80;
+              const cx = canvas.width / 2;
+              const cy = canvas.height / 2;
+              ctx.strokeRect(cx - w / 2, cy - h / 2, w, h);
+              ctx.beginPath();
+              ctx.moveTo(cx - w / 2, cy - h / 2);
+              ctx.lineTo(cx, cy);
+              ctx.lineTo(cx + w / 2, cy - h / 2);
+              ctx.stroke();
+            }
+          }
 
-          // Final compact size from centralized config
-          pcPivot.scale.set(sffItem.scale, sffItem.scale, sffItem.scale);
+          const texture = new THREE.CanvasTexture(canvas);
+          const labelWidth = type === 'text' ? width * 0.95 : width * 0.85; // Maximize text space to fix clipping
+          const labelHeight = 0.35; // Match createBoard
+          const label = new THREE.Mesh(new THREE.PlaneGeometry(labelWidth, labelHeight), new THREE.MeshBasicMaterial({ map: texture, transparent: true }));
+          label.position.set(0, 0, 0.051);
+          segmentGroup.add(label);
 
-          meshes.push({ obj: pcPivot, item: sffItem, baseY: pcPivot.position.y, isModel: true });
-
-          const light = new THREE.PointLight(new THREE.Color(sffItem.color), 0, 3);
+          const light = new THREE.PointLight(new THREE.Color('#ffffff'), 0, 2);
           light.name = 'hoverLight';
-          pcPivot.add(light);
-        }
+          light.position.set(0, 0, 0.5);
+          segmentGroup.add(light);
 
-        // 3. Handle Monitors (Delphi) - Meshes #3 and #4 (counters 4 and 5)
-        if (targets.monitor && targets.screen && delphiItem) {
-          const monitor = targets.monitor;
-          const screen = targets.screen;
+          board.userData = { id, type: 'signboard' };
+          label.userData = { id, type: 'signboard' };
+          meshes.push({ obj: segmentGroup, item: { id, color: '#ffffff', hoverScale: 1.35 } as any, baseY: 0.8, isModel: true });
+        };
 
-          monitor.castShadow = true;
-          monitor.receiveShadow = true;
-          screen.castShadow = true;
-          screen.receiveShadow = true;
+        const createLine = (xPos: number) => {
+          const lineGeo = new THREE.BoxGeometry(0.01, 0.4, 0.02);
+          const lineMat = new THREE.MeshBasicMaterial({ color: '#333333' });
+          const line = new THREE.Mesh(lineGeo, lineMat);
+          line.position.set(xPos, 0, 0.05);
+          contactGroup.add(line);
+        };
 
-          // Calculate combined world center BEFORE detaching for zero drift
-          const box = new THREE.Box3().setFromObject(monitor);
-          box.expandByObject(screen);
-          const worldCenter = box.getCenter(new THREE.Vector3());
+        createSegment('text', 'CONTACT ME', -(totalWidth / 2) + hWidth / 2, hWidth, 'ui-contact-header', '900 72px Inter, sans-serif');
+        createLine(-(totalWidth / 2) + hWidth);
+        createSegment('linkedin', '', -(totalWidth / 2) + hWidth + sWidth / 2, sWidth, 'ui-linkedin');
+        createLine(-(totalWidth / 2) + hWidth + sWidth);
+        createSegment('email', '', -(totalWidth / 2) + hWidth + sWidth + sWidth / 2, sWidth, 'ui-email');
 
-          const monitorPivot = new THREE.Group();
-          monitorPivot.name = 'monitorPivot';
+        signpostGroup.add(contactGroup);
 
-          // 1. Calculate combined bounding box in WORLD space first to find the group's natural center
-          const monitorBox = new THREE.Box3().setFromObject(monitor);
-          monitorBox.expandByObject(screen);
-          const worldAssemblyCenter = monitorBox.getCenter(new THREE.Vector3());
+        // Standardized Opaque Black Boards with perfect 0.7m spacing
+        createBoard("ABOUT ME", "ui-about", 2.3, -0.35, "900 72px Inter, sans-serif");
+        createBoard("RESUME PDF", "ui-resume", 1.6, 0.25, "900 72px Inter, sans-serif");
+        createBoard("GO BACK", "ui-back", 0.2, -0.15, "900 72px Inter, sans-serif");
 
-          // 2. Position the pivot at this natural center point on the desk
-          // We raise it slightly (y=2.8) to sit on the surface
-          monitorPivot.position.set(0, 2.8, 0.15);
-          monitorPivot.rotation.y = 0;
-          deskPivot.add(monitorPivot);
+        signpostGroup.position.set(3.5, -1, 1.5); // Moved to the right side in front of desk
+        scene.add(signpostGroup);
+      };
 
-          // 3. Attach meshes to the pivot - this preserves their world positions
-          monitorPivot.attach(monitor);
-          monitorPivot.attach(screen);
+      createSignpost();
 
-          // 4. Group-shift the children so their COMBINED local center is at (0,0,0)
-          // This makes the pivot the true center for scaling/rotation
-          const localAssemblyCenter = monitorPivot.worldToLocal(worldAssemblyCenter.clone());
-          monitor.position.sub(localAssemblyCenter);
-          screen.position.sub(localAssemblyCenter);
+      desk.scale.set(0.8, 0.8, 0.8);
+      const dBox = new THREE.Box3().setFromObject(desk);
+      const dCenter = dBox.getCenter(new THREE.Vector3());
+      desk.position.set(-dCenter.x, -dBox.min.y, -dCenter.z);
+      deskPivot.add(desk);
 
-          // 5. Orient correctly (face camera + 180deg Z flip + 90deg X tilt)
-          // Since we're using .attach(), we set local rotation relative to the pivot
-          monitor.rotation.set(Math.PI / 2, Math.PI, Math.PI);
-          screen.rotation.set(Math.PI / 2, Math.PI, Math.PI);
-
-          monitor.userData = { id: 'delphi' };
-          screen.userData = { id: 'delphi' };
-
-          monitorPivot.scale.set(delphiItem.scale, delphiItem.scale, delphiItem.scale);
-
-          meshes.push({ obj: monitorPivot, item: delphiItem!, baseY: monitorPivot.position.y, isModel: true });
-
-          const light = new THREE.PointLight(new THREE.Color(delphiItem.color), 0, 3);
-          light.position.set(0, 0, 1.0);
-          light.name = 'hoverLight';
-          monitorPivot.add(light);
-        }
-
-        // Apply shadows to remaining desk meshes and hide stray artifacts
-        const excluded = [targets.pc, targets.monitor, targets.screen];
+      const findMeshes = (): { pc?: THREE.Mesh, monitor?: THREE.Mesh, screen?: THREE.Mesh } => {
+        const found: { pc?: THREE.Mesh; monitor?: THREE.Mesh; screen?: THREE.Mesh } = {};
         desk.traverse((child: any) => {
           if (child.isMesh) {
-            const mesh = child as THREE.Mesh;
-            if (excluded.includes(child)) return;
-
-            // Hide stray decorative/broken assets reported by subagent
-            if (mesh.name.toLowerCase().includes('leg')) {
-              mesh.visible = false;
-              return;
-            }
-
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
+            if (child.name === 'Object_8') found.pc = child;
+            if (child.name === 'Object_5') found.monitor = child;
+            if (child.name === 'Object_6') found.screen = child;
           }
         });
-      }, undefined, (error) => {
-        console.error("An error happened loading the GLB model", error);
-      });
+        return found;
+      };
 
-      scene.add(model);
-    }, undefined, (error) => {
-      console.error("An error happened loading the GLB model", error);
+      const targets = findMeshes();
+
+      if (targets.pc && sffItem) {
+        const activePC = targets.pc;
+        activePC.castShadow = true;
+        activePC.receiveShadow = true;
+        const worldPos = new THREE.Vector3();
+        activePC.getWorldPosition(worldPos);
+        activePC.geometry.computeBoundingBox();
+        const meshCenter = new THREE.Vector3();
+        activePC.geometry.boundingBox?.getCenter(meshCenter);
+        const worldCenter = activePC.localToWorld(meshCenter.clone());
+        const pcPivot = new THREE.Group();
+        pcPivot.name = 'pcPivot';
+        deskPivot.add(pcPivot);
+        pcPivot.position.copy(deskPivot.worldToLocal(worldCenter));
+        pcPivot.attach(activePC);
+        activePC.userData = { id: 'arbitrage-app' };
+        pcPivot.scale.set(sffItem.scale, sffItem.scale, sffItem.scale);
+        meshes.push({ obj: pcPivot, item: sffItem, baseY: pcPivot.position.y, isModel: true });
+        const light = new THREE.PointLight(new THREE.Color(sffItem.color), 0, 3);
+        light.name = 'hoverLight';
+        pcPivot.add(light);
+      }
+
+      if (targets.monitor && targets.screen && delphiItem) {
+        const monitor = targets.monitor;
+        const screen = targets.screen;
+        monitor.castShadow = true;
+        monitor.receiveShadow = true;
+        screen.castShadow = true;
+        screen.receiveShadow = true;
+        const box = new THREE.Box3().setFromObject(monitor);
+        box.expandByObject(screen);
+        const worldCenter = box.getCenter(new THREE.Vector3());
+        const monitorPivot = new THREE.Group();
+        monitorPivot.name = 'monitorPivot';
+        const monitorBox = new THREE.Box3().setFromObject(monitor);
+        monitorBox.expandByObject(screen);
+        const worldAssemblyCenter = monitorBox.getCenter(new THREE.Vector3());
+        monitorPivot.position.set(0, 2.8, 0.15);
+        monitorPivot.rotation.y = 0;
+        deskPivot.add(monitorPivot);
+        monitorPivot.attach(monitor);
+        monitorPivot.attach(screen);
+        const localAssemblyCenter = monitorPivot.worldToLocal(worldAssemblyCenter.clone());
+        monitor.position.sub(localAssemblyCenter);
+        screen.position.sub(localAssemblyCenter);
+        monitor.rotation.set(Math.PI / 2, Math.PI, Math.PI);
+        screen.rotation.set(Math.PI / 2, Math.PI, Math.PI);
+        monitor.userData = { id: 'delphi' };
+        screen.userData = { id: 'delphi' };
+        monitorPivot.scale.set(delphiItem.scale, delphiItem.scale, delphiItem.scale);
+        meshes.push({ obj: monitorPivot, item: delphiItem!, baseY: monitorPivot.position.y, isModel: true });
+        const light = new THREE.PointLight(new THREE.Color(delphiItem.color), 0, 3);
+        light.position.set(0, 0, 1.0);
+        light.name = 'hoverLight';
+        monitorPivot.add(light);
+      }
+
+      desk.traverse((child: any) => {
+        if (child.isMesh) {
+          const mesh = child as THREE.Mesh;
+          if (child === targets.pc || child === targets.monitor || child === targets.screen) return;
+          if (mesh.name.toLowerCase().includes('leg')) { mesh.visible = false; return; }
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+        }
+      });
     });
 
     const createCustomShape = (shape: string, colorHex: string) => {
@@ -590,12 +767,12 @@ export default function InteractiveDesk({ selectedId, onSelect, hoveredId, onHov
     const handleWheel = (e: WheelEvent) => {
       const zoomSpeed = 0.001;
       const { minZoom: globalMin, maxZoom: globalMax } = cameraConfig;
-      
+
       // Use latest selectedId from selectedRef to get fresh item data
       const currentItem = resumeData.find(i => i.id === selectedRef.current);
       const minZoom = currentItem?.minZoom ?? globalMin;
       const maxZoom = currentItem?.maxZoom ?? globalMax;
-      
+
       zoomRef.current = Math.max(minZoom, Math.min(maxZoom, zoomRef.current + e.deltaY * zoomSpeed));
     };
 
@@ -625,6 +802,27 @@ export default function InteractiveDesk({ selectedId, onSelect, hoveredId, onHov
     const handleClick = (e: MouseEvent) => {
       checkIntersections(e);
       if (currentHover) {
+        if (currentHover === 'ui-about') {
+          onSelect('about-me');
+          return;
+        }
+        if (currentHover === 'ui-resume') {
+          if (onResume) onResume();
+          return;
+        }
+        if (currentHover === 'ui-back') {
+          if (onBack) onBack();
+          return;
+        }
+        if (currentHover === 'ui-linkedin' || currentHover === 'ui-contact-header') {
+          window.open('https://linkedin.com/in/adityainduri', '_blank');
+          return;
+        }
+        if (currentHover === 'ui-email') {
+          window.location.href = 'mailto:adityainduri37@gmail.com';
+          return;
+        }
+
         const item = resumeData.find(i => i.id === currentHover);
         if (item && item.clickable !== false) {
           onSelect(currentHover, currentHover);
@@ -766,6 +964,7 @@ export default function InteractiveDesk({ selectedId, onSelect, hoveredId, onHov
     <div className="relative w-full h-full min-h-screen bg-[#D0D0CC] overflow-hidden">
       <div className="absolute inset-0 pointer-events-none z-10 shadow-[inset_0_0_100px_rgba(0,0,0,0.05)]" />
       <div ref={mountRef} className="w-full h-full border-none outline-none" />
+
       <button
         onClick={handleRecenter}
         className="absolute bottom-6 right-6 z-20 flex items-center justify-center gap-2 py-2.5 px-5 rounded-2xl bg-white/80 backdrop-blur-md hover:bg-white/95 active:scale-95 transition-all border border-white/30 group shadow-[0_8px_32px_rgba(0,0,0,0.1)] cursor-pointer"
