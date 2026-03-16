@@ -96,6 +96,18 @@ export default function InteractiveDesk({
     scene.background = new THREE.Color('#D0D0CC'); // Updated background color
 
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+    
+    // Dynamic FOV based on aspect ratio
+    const updateFOV = () => {
+      if (width < height) { // Mobile Portrait
+        camera.fov = 65;
+      } else {
+        camera.fov = 45;
+      }
+      camera.updateProjectionMatrix();
+    };
+    updateFOV();
+
     camera.position.set(0, 4, 7); // Brought camera closer to avoid clipping interior walls
     camera.lookAt(0, 0, 0);
 
@@ -799,6 +811,26 @@ export default function InteractiveDesk({
       isGrabbingRef.current = false;
     };
 
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        const fakeMouseEvent = { clientX: touch.clientX, clientY: touch.clientY } as MouseEvent;
+        handlePointerDown(fakeMouseEvent);
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        const fakeMouseEvent = { clientX: touch.clientX, clientY: touch.clientY } as MouseEvent;
+        handlePointerMove(fakeMouseEvent);
+      }
+    };
+
+    const handleTouchEnd = () => {
+      handlePointerUp();
+    };
+
     const handleClick = (e: MouseEvent) => {
       checkIntersections(e);
       if (currentHover) {
@@ -835,6 +867,9 @@ export default function InteractiveDesk({
     renderer.domElement.addEventListener('pointerdown', handlePointerDown);
     renderer.domElement.addEventListener('pointermove', handlePointerMove);
     renderer.domElement.addEventListener('pointerup', handlePointerUp);
+    renderer.domElement.addEventListener('touchstart', handleTouchStart, { passive: true });
+    renderer.domElement.addEventListener('touchmove', handleTouchMove, { passive: true });
+    renderer.domElement.addEventListener('touchend', handleTouchEnd);
     renderer.domElement.addEventListener('click', handleClick);
     renderer.domElement.addEventListener('wheel', handleWheel, { passive: false });
 
@@ -843,7 +878,7 @@ export default function InteractiveDesk({
       const w = mountNode.clientWidth;
       const h = mountNode.clientHeight;
       camera.aspect = w / h;
-      camera.updateProjectionMatrix();
+      updateFOV();
       renderer.setSize(w, h);
     };
     window.addEventListener('resize', handleResize);
@@ -927,6 +962,9 @@ export default function InteractiveDesk({
       renderer.domElement.removeEventListener('pointerdown', handlePointerDown);
       renderer.domElement.removeEventListener('pointermove', handlePointerMove);
       renderer.domElement.removeEventListener('pointerup', handlePointerUp);
+      renderer.domElement.removeEventListener('touchstart', handleTouchStart);
+      renderer.domElement.removeEventListener('touchmove', handleTouchMove);
+      renderer.domElement.removeEventListener('touchend', handleTouchEnd);
       renderer.domElement.removeEventListener('click', handleClick);
       renderer.domElement.removeEventListener('wheel', handleWheel);
 

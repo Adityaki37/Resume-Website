@@ -1,32 +1,28 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Github, Linkedin, Mail } from 'lucide-react';
+import { Github, Linkedin, Mail, ExternalLink, ArrowRight, Monitor, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { resumeData } from '@/data/resume';
+import { Link as ScrollLink } from 'react-scroll';
 
-interface LandingCoverProps {
-  onStart: () => void;
-  isLoading: boolean;
-  loadingProgress: number;
-}
+// --- CONFIGURATION ---
+const RESTRICT_MOBILE_ACCESS = true;
 
-// --- ARROW CONFIGURATION ---
-// You can change the number of arrows and whether they move here:
 const ARROW_CONFIG = {
-  count: 55,                 // Total number of background arrows
-  isStill: false,            // Set to true to make arrows stop scattering/drifting
-  shouldRandomizeWhileLoading: false // Set to false to make arrows stay in place during loading
+  count: 60, // Total number of background arrows per "storm block"
+  isStill: false,
+  shouldRandomizeWhileLoading: false
 };
 
-// Diverse hand-drawn swirly arrow variants (15 unique styles)
 const HandDrawnArrow = ({ className, style, type = 0 }: { className?: string; style?: React.CSSProperties; type?: number }) => {
   const paths = [
-    "M10 50 C 20 20, 40 20, 50 50 C 60 80, 80 80, 90 50 M 90 50 L 80 40 M 90 50 L 80 60", // Classic Swirl
+    "M15 50 L 85 50 L 65 35 M 85 50 L 65 65", // Clean Horizontal (Right) - Primary Enter
     "M10 10 Q 50 90 90 10 M 70 30 L 90 10 L 70 5", // Deep Swoop
     "M10 50 Q 25 25 50 50 T 90 50 M 75 35 L 90 50 L 75 65", // S-Curve
     "M20 20 C 80 20 80 80 20 80 C 120 80 120 20 180 20 M 160 10 L 180 20 L 160 30", // Loopy Loop
-    "M10 80 C 40 10 60 10 90 80 M 70 60 L 90 80 L 105 50", // High Arch
+    "M15 50 L 85 50 L 65 35 M 85 50 L 65 65", // Clean Horizontal (Right) - Project Cards
     "M10 50 A 40 40 0 1 1 50 90 L 50 50 M 35 65 L 50 50 L 65 65", // Spiral Start
     "M10 20 L 30 80 L 50 20 L 70 80 L 90 40 M 80 30 L 90 40 L 100 30", // Zig Zag Sketch
     "M10 50 Q 50 -20 90 50 Q 50 120 10 50 M 20 40 L 10 50 L 25 60", // Infinity Loop
@@ -50,7 +46,7 @@ const HandDrawnArrow = ({ className, style, type = 0 }: { className?: string; st
       <path
         d={paths[type % paths.length]}
         stroke="currentColor"
-        strokeWidth="4.5"
+        strokeWidth="6"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -58,36 +54,35 @@ const HandDrawnArrow = ({ className, style, type = 0 }: { className?: string; st
   );
 };
 
-const ArrowStorm = ({ isPageLoading }: { isPageLoading: boolean }) => {
+const ArrowStorm = ({ count = ARROW_CONFIG.count }: { count?: number }) => {
   const arrows = useMemo(() => {
-    return Array.from({ length: ARROW_CONFIG.count }).map((_, i) => ({
+    return Array.from({ length: count }).map((_, i) => ({
       id: i,
-      x: (Math.random() - 0.5) * 1600,
-      y: (Math.random() - 0.5) * 1000,
+      x: Math.random() * 100, // Percentage based for better distribution
+      y: Math.random() * 100, // Percentage based for better distribution
       rotate: Math.random() * 360,
-      scale: 0.3 + Math.random() * 0.9,
+      scale: 0.4 + Math.random() * 0.8,
       delay: Math.random() * -40,
       duration: 25 + Math.random() * 30,
       type: Math.floor(Math.random() * 15),
-      opacity: 0.9 + Math.random() * 0.1 // Full darkness to match text
+      opacity: 0.85 + Math.random() * 0.15
     }));
-  }, [ARROW_CONFIG.shouldRandomizeWhileLoading ? Math.random() : null]); // Regenerate if config allows
+  }, [count]);
 
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden flex items-center justify-center text-black">
+    <div className="absolute inset-0 pointer-events-none overflow-hidden text-black/40">
       {arrows.map((arrow) => (
         <div
           key={arrow.id}
           className={`absolute w-12 h-12 ${ARROW_CONFIG.isStill ? '' : 'animate-css-drift'}`}
           style={{
-            left: '50%',
-            top: '50%',
-            filter: 'drop-shadow(0.5px 0.5px 0px rgba(0,0,0,0.1))',
+            left: `${arrow.x}%`,
+            top: `${arrow.y}%`,
             transform: ARROW_CONFIG.isStill
-              ? `translate(-50%, -50%) translate(${arrow.x}px, ${arrow.y}px) rotate(${arrow.rotate}deg) scale(${arrow.scale})`
+              ? `rotate(${arrow.rotate}deg) scale(${arrow.scale})`
               : undefined,
-            '--initial-x': `${arrow.x}px`,
-            '--initial-y': `${arrow.y}px`,
+            '--initial-x': `0px`,
+            '--initial-y': `0px`,
             '--rotate': `${arrow.rotate}deg`,
             '--scale': arrow.scale,
             opacity: arrow.opacity,
@@ -102,12 +97,151 @@ const ArrowStorm = ({ isPageLoading }: { isPageLoading: boolean }) => {
   );
 };
 
+const SectionHeader = ({ title }: { title: string }) => (
+  <div className="mb-12 flex flex-col items-center text-center">
+    <h2 className="text-4xl md:text-5xl font-black text-black tracking-tighter uppercase italic mb-4">{title}</h2>
+    <div className="h-px w-12 bg-black/20" />
+  </div>
+);
+
+const ProjectCard = ({ item }: { item: any }) => (
+  <div className="group relative bg-[#f4f4f2]/50 backdrop-blur-sm border border-[#d0d0cc]/30 rounded-3xl p-8 hover:bg-black hover:text-white transition-all duration-500 shadow-sm hover:shadow-2xl flex flex-col h-full">
+    <div className="flex justify-between items-start mb-6">
+      <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-400 group-hover:text-zinc-500">{item.date}</span>
+      <div className="w-10 h-10 rounded-full bg-black/5 group-hover:bg-white/10 flex items-center justify-center text-black group-hover:text-white transition-colors">
+        <HandDrawnArrow type={4} className="w-5 h-5" />
+      </div>
+    </div>
+    <h3 className="text-2xl font-black mb-2 tracking-tight text-black group-hover:text-white transition-colors">{item.title}</h3>
+    <p className="text-zinc-500 group-hover:text-zinc-300 font-medium mb-6 text-sm leading-relaxed transition-colors">{item.subtitle}</p>
+    <ul className="space-y-3 mb-8 text-black transition-colors group-hover:text-white">
+      {item.bullets.slice(0, 2).map((bullet: string, i: number) => (
+        <li key={i} className="flex items-start gap-3 text-xs font-medium leading-relaxed opacity-80 transition-colors">
+          <span className="mt-1.5 w-1 h-1 rounded-full bg-current shrink-0" />
+          {bullet}
+        </li>
+      ))}
+    </ul>
+
+    <div className="mt-auto pt-4 flex items-center justify-between border-t border-black/5 group-hover:border-white/10">
+      <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">Project Detail</span>
+      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+    </div>
+  </div>
+);
+
+const EducationItem = ({ item }: { item: any }) => (
+  <div className="relative pl-12 pb-16 border-l-2 border-[#d0d0cc]/30 last:pb-0">
+    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-black" />
+    <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 mb-4">
+      <h3 className="text-2xl font-black text-black tracking-tight">{item.title}</h3>
+      <span className="text-sm font-bold text-zinc-400 uppercase tracking-widest bg-zinc-50 px-3 py-1 rounded-full whitespace-nowrap">{item.date}</span>
+    </div>
+    <p className="text-lg font-bold text-zinc-600 mb-6 italic">{item.subtitle}</p>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+      {item.bullets.map((bullet: string, i: number) => (
+        <div key={i} className="flex items-start gap-4">
+          <ChevronRight className="w-4 h-4 mt-1 text-black shrink-0" />
+          <p className="text-zinc-500 font-medium leading-relaxed max-w-2xl">{bullet}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const ExperienceItem = ({ item }: { item: any }) => (
+  <div className="relative pl-12 pb-16 border-l-2 border-[#d0d0cc]/30 last:pb-0">
+    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-black" />
+    <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 mb-4">
+      <h3 className="text-2xl font-black text-black tracking-tight">{item.title}</h3>
+      <span className="text-sm font-bold text-zinc-400 uppercase tracking-widest bg-zinc-50 px-3 py-1 rounded-full whitespace-nowrap">{item.date}</span>
+    </div>
+    <p className="text-lg font-bold text-zinc-600 mb-6 italic">{item.subtitle}</p>
+    <div className="space-y-4">
+      {item.bullets.map((bullet: string, i: number) => (
+        <div key={i} className="flex items-start gap-4">
+          <ChevronRight className="w-4 h-4 mt-1 text-black shrink-0" />
+          <p className="text-zinc-500 font-medium leading-relaxed max-w-2xl">{bullet}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const Navbar = ({ containerId }: { containerId: string }) => {
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const handleScroll = () => setIsScrolled(container.scrollTop > 50);
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [containerId]);
+
+  const navLinks = [
+    { name: 'About', to: 'about' },
+    { name: 'Education', to: 'education' },
+    { name: 'Experience', to: 'experience' },
+    { name: 'Projects', to: 'projects' },
+    { name: 'Expertise', to: 'skills' },
+    { name: 'Contact', to: 'contact' },
+  ];
+
+  return (
+    <motion.header
+      className={`fixed top-0 left-0 right-0 z-[120] transition-all duration-500 px-8 md:px-16 py-6 flex items-center justify-between ${isScrolled ? 'bg-white/80 backdrop-blur-xl border-b border-black/5 py-4' : 'bg-transparent'
+        }`}
+    >
+      <div className="text-xl font-black tracking-tighter text-black cursor-default">
+        Aditya Induri
+      </div>
+      <nav className="hidden md:flex items-center gap-8">
+        {navLinks.map((link) => (
+          <ScrollLink
+            key={link.to}
+            to={link.to}
+            containerId={containerId}
+            smooth={true}
+            duration={800}
+            offset={-100}
+            className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-400 hover:text-black cursor-pointer transition-colors"
+          >
+            {link.name}
+          </ScrollLink>
+        ))}
+      </nav>
+      <div className="md:hidden flex items-center gap-4">
+        <Monitor className="w-5 h-5 text-black/20" />
+      </div>
+    </motion.header>
+  );
+};
+
+interface LandingCoverProps {
+  onStart: () => void;
+  isLoading: boolean;
+  loadingProgress: number;
+}
+
 export default function LandingCover({ onStart, isLoading, loadingProgress }: LandingCoverProps) {
   const [isRippleActive, setIsRippleActive] = useState(false);
   const [ripplePos, setRipplePos] = useState({ x: 0, y: 0 });
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(/Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent) || window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const canEnter = !RESTRICT_MOBILE_ACCESS || !isMobile;
 
   const handleStartInteraction = (e: React.MouseEvent) => {
-    if (isRippleActive || isLoading) return;
+    if (isRippleActive || isLoading || !canEnter) return;
     setRipplePos({ x: e.clientX, y: e.clientY });
     setIsRippleActive(true);
     setTimeout(() => {
@@ -115,213 +249,297 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
     }, 1200);
   };
 
-  const navLinks = ['ABOUT', 'EDUCATION', 'EXPERIENCE', 'PROJECTS', 'SKILLS'];
-
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-white overflow-hidden font-sans">
-      {/* Header Bar */}
-      <motion.header
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative z-[110] w-full flex items-center justify-between px-8 md:px-16 py-8"
-      >
-        <div className="text-2xl font-black tracking-tighter text-black cursor-default">
-          Aditya Induri
-        </div>
-        {/* Navigation removed as requested */}
-      </motion.header>
+    <div id="landing-container" className="fixed inset-0 z-[100] bg-white overflow-y-auto overflow-x-hidden font-sans">
+      <div className="relative min-h-screen">
+        {/* Background Layers Wrapper - Spans content height */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {/* Decorative Background Grid */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:60px_60px]" />
 
-      {/* Decorative Background Grid */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none" />
-
-      {/* Arrow Storm Decor */}
-      <ArrowStorm isPageLoading={isLoading} />
-
-      {/* Wavy Transition Ripples (White) */}
-      <AnimatePresence>
-        {isRippleActive && (
-          <div className="fixed inset-0 z-[105] pointer-events-none">
-            {[0, 0.2, 0.4, 0.6].map((delay, i) => (
-              <motion.div
-                key={i}
-                initial={{ scale: 0, opacity: 1 }}
-                animate={{ scale: 200, opacity: 1 }}
-                transition={{
-                  duration: 1.8,
-                  delay: delay,
-                  ease: [0.2, 0, 0.4, 1]
-                }}
-                style={{
-                  position: 'fixed',
-                  left: ripplePos.x,
-                  top: ripplePos.y,
-                  transform: 'translate(-50%, -50%)',
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '50%',
-                  backgroundColor: '#D0D0CC',
-                  boxShadow: '0 0 50px rgba(208,208,204,0.5)',
-                  zIndex: 101 + i,
-                }}
-              />
-            ))}
+          {/* Global Arrow Storm */}
+          <div className="absolute inset-0">
+            <ArrowStorm count={250} />
           </div>
-        )}
-      </AnimatePresence>
+        </div>
 
-      <div className="flex-1 relative z-10 w-full max-w-7xl mx-auto px-8 md:px-16 grid grid-cols-1 md:grid-cols-2 items-center gap-12">
-        {/* Left Side: Content */}
-        <motion.div
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: isRippleActive ? 0 : 1, x: 0 }}
-          transition={{ duration: 0.8 }}
-          className="flex flex-col items-start text-left"
-        >
-          <motion.h1
-            className="text-6xl md:text-8xl font-black text-zinc-300 mb-8 tracking-tighter leading-[0.85]"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            Hi, <br />
-            I&apos;m <span className="text-black">Aditya Induri.</span>
-          </motion.h1>
+        <Navbar containerId="landing-container" />
+        <div id="hero" className="relative min-h-screen flex flex-col pt-32 lg:pt-24">
 
-          <motion.p
-            className="text-lg md:text-xl text-zinc-500 mb-12 leading-relaxed max-w-md font-medium"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            Software engineer based in Ohio. crafting digital prototypes and immersive interfaces.
-          </motion.p>
+          {/* Wavy Transition Ripples (White) */}
+          <AnimatePresence>
+            {isRippleActive && (
+              <div className="fixed inset-0 z-[105] pointer-events-none">
+                {[0, 0.2, 0.4, 0.6].map((delay, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ scale: 0, opacity: 1 }}
+                    animate={{ scale: 200, opacity: 1 }}
+                    transition={{
+                      duration: 1.8,
+                      delay: delay,
+                      ease: [0.2, 0, 0.4, 1]
+                    }}
+                    style={{
+                      position: 'fixed',
+                      left: ripplePos.x,
+                      top: ripplePos.y,
+                      transform: 'translate(-50%, -50%)',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      backgroundColor: '#D0D0CC',
+                      boxShadow: '0 0 50px rgba(208,208,204,0.5)',
+                      zIndex: 101 + i,
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </AnimatePresence>
 
-          <div className="flex flex-col items-start gap-12">
-            <motion.div className="flex flex-wrap items-center gap-6">
-              <motion.button
-                onClick={handleStartInteraction}
-                disabled={isLoading}
-                whileHover={isLoading ? {} : { scale: 1.05 }}
-                whileTap={isLoading ? {} : { scale: 0.95 }}
-                className={`group relative flex items-center justify-center gap-4 px-16 py-8 rounded-[40px] transition-all duration-500 shadow-2xl ${isLoading
-                  ? 'bg-zinc-100 text-zinc-400 cursor-wait border-2 border-zinc-200'
-                  : 'bg-black text-white cursor-pointer border-2 border-black hover:bg-white hover:text-black shadow-black/20'
-                  }`}
+          <div className="flex-1 relative z-10 w-full max-w-7xl mx-auto px-8 md:px-16 grid grid-cols-1 md:grid-cols-2 items-center gap-12 py-16 md:py-12">
+            {/* Left Side: Content */}
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: isRippleActive ? 0 : 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              className="flex flex-col items-start text-left order-2 md:order-1"
+            >
+              <motion.h1
+                className="text-6xl md:text-8xl font-black text-zinc-300 mb-8 tracking-tighter leading-[0.85]"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
               >
-                <div className="flex flex-col items-center">
-                  <span className={`font-black tracking-tighter text-3xl uppercase italic transition-all duration-500 ${isLoading ? 'opacity-50' : 'opacity-100'}`}>
-                    {isLoading ? `Loading ${loadingProgress}%` : 'Enter !'}
-                  </span>
-                  {!isLoading && (
-                    <motion.span
-                      initial={{ scaleX: 0 }}
-                      animate={{ scaleX: 1 }}
-                      className="h-1 w-full bg-current mt-2 rounded-full origin-left"
-                    />
-                  )}
-                </div>
+                Hi, <br />
+                I&apos;m <span className="text-black">Aditya Induri.</span>
+              </motion.h1>
 
-                {!isLoading && (
-                  <>
-                    <HandDrawnArrow type={0} className="w-12 h-12 absolute -right-2 transition-all duration-300 -rotate-12" style={{ opacity: 1 }} />
-                    {/* Visual Connector Arrow pointing to image */}
-                    <motion.div
-                      className="absolute -right-32 top-1/2 -translate-y-1/2 hidden lg:block"
-                      animate={{ x: [0, 15, 0] }}
-                      transition={{ duration: 2, repeat: Infinity }}
+              <motion.p
+                className="text-lg md:text-xl text-zinc-500 mb-12 leading-relaxed max-w-md font-medium"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                Software engineer based in Ohio. crafting digital prototypes and immersive interfaces.
+              </motion.p>
+
+              <div className="flex flex-col items-start gap-12">
+                <motion.div className="flex flex-wrap items-center gap-6">
+                  <motion.button
+                    onClick={handleStartInteraction}
+                    disabled={isLoading || !canEnter}
+                    whileHover={isLoading || !canEnter ? {} : { scale: 1.05 }}
+                    whileTap={isLoading || !canEnter ? {} : { scale: 0.95 }}
+                    className={`group relative flex items-center justify-center gap-4 px-16 py-8 rounded-[40px] transition-all duration-500 shadow-2xl ${isLoading
+                      ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed border-2 border-zinc-200'
+                      : 'bg-black text-white cursor-pointer border-2 border-black hover:bg-white hover:text-black shadow-black/20'
+                      } ${!canEnter && !isLoading ? 'cursor-not-allowed opacity-90' : ''}`}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="relative">
+                        <span className={`font-black tracking-tighter text-4xl uppercase italic transition-all duration-500 text-center ${isLoading ? 'opacity-50' : 'opacity-100'}`}>
+                          {isLoading ? `Loading ${loadingProgress}%` : 'Enter !'}
+                        </span>
+
+                        {!isLoading && canEnter && (
+                          <div className="absolute left-[calc(100%+1.5rem)] top-1/2 -translate-y-1/2 pointer-events-none">
+                            <HandDrawnArrow type={0} className="w-12 h-12 transition-all duration-300" style={{ opacity: 1 }} />
+                          </div>
+                        )}
+                      </div>
+
+                      {!isLoading && (
+                        <div className="flex items-center gap-2 opacity-60">
+                          <Monitor className="w-4 h-4" />
+                          <span className="text-[10px] font-bold tracking-[0.2em] uppercase whitespace-nowrap">
+                            Use desktop for full experience
+                          </span>
+                        </div>
+                      )}
+
+                      {!isLoading && canEnter && (
+                        <motion.span
+                          initial={{ scaleX: 0 }}
+                          animate={{ scaleX: 1 }}
+                          className="h-1 w-full bg-current mt-1 rounded-full origin-left"
+                        />
+                      )}
+                    </div>
+                  </motion.button>
+                </motion.div>
+
+                <div className="flex items-center gap-2 relative">
+                  {[
+                    { Icon: Github, href: "https://github.com/adityaki37" },
+                    { Icon: Linkedin, href: "https://linkedin.com/in/adityainduri" },
+                    { Icon: Mail, href: "mailto:adityainduri37@gmail.com" }
+                  ].map((item, i) => (
+                    <motion.a
+                      key={i}
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.6 + (i * 0.1) }}
+                      className="p-3 text-black hover:scale-110 transition-all opacity-80 hover:opacity-100"
                     >
-                      <HandDrawnArrow type={2} className="w-20 h-20 text-black/90" />
-                    </motion.div>
-                  </>
-                )}
-              </motion.button>
+                      <item.Icon className="w-5 h-5" />
+                    </motion.a>
+                  ))}
+                </div>
+              </div>
             </motion.div>
 
-            <div className="flex items-center gap-2 relative">
-              {/* Artistic decorative arrow pointing to socials */}
-              <div className="absolute -left-16 top-1 w-12 h-12 text-black/90 rotate-[140deg] hidden lg:block">
-                <HandDrawnArrow type={6} />
-              </div>
-
-              {/* Artistic Scribble near socials */}
-              <div className="absolute -right-12 -bottom-4 w-10 h-10 text-black/80 rotate-[20deg] hidden lg:block">
-                <HandDrawnArrow type={12} />
-              </div>
-
-              {[
-                { Icon: Github, href: "#" },
-                { Icon: Linkedin, href: "#" },
-                { Icon: Mail, href: "#" }
-              ].map((item, i) => (
-                <motion.a
-                  key={i}
-                  href={item.href}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 + (i * 0.1) }}
-                  className="p-3 text-zinc-300 hover:text-black transition-colors"
-                >
-                  <item.Icon className="w-5 h-5" />
-                </motion.a>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Right Side: Headshot with Smaller size */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9, x: 30 }}
-          animate={{ opacity: isRippleActive ? 0 : 1, scale: 1, x: 0 }}
-          transition={{ duration: 0.8 }}
-          className="relative flex justify-center items-center"
-        >
-          {/* Decorative Swirly Arrows Surrounding Headshot (High-Performance CSS) */}
-          <div className="absolute inset-0 pointer-events-none select-none">
-            {[0, 60, 120, 180, 240, 300].map((angle, i) => (
-              <div
-                key={i}
-                className="absolute left-1/2 top-1/2 w-24 h-24 text-black animate-css-orbit"
-                style={{
-                  '--start-angle': `${angle}deg`,
-                  animationDelay: `${i * 1.2}s`,
-                  opacity: 0.9,
-                } as any}
+            {/* Right Side: Headshot */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, x: 30 }}
+              animate={{ opacity: isRippleActive ? 0 : 1, scale: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              className="relative flex justify-center items-center order-1 md:order-2"
+            >
+              <motion.div
+                whileHover={{ rotate: 2, scale: 1.05 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="relative w-72 h-72 lg:w-[420px] lg:h-[420px] rounded-[100px] overflow-hidden border-8 border-white bg-zinc-50 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.2)] p-2"
               >
-                <div style={{ transform: `rotate(${angle + 45}deg) scale(${0.7 + Math.random() * 0.6})` }}>
-                  <HandDrawnArrow type={i + 7} />
+                <div className="relative w-full h-full rounded-[60px] overflow-hidden">
+                  <Image
+                    src="/Induri.Aditya_Headshot.jpg"
+                    alt="Aditya Induri"
+                    fill
+                    className="object-cover"
+                    priority
+                  />
+                </div>
+              </motion.div>
+            </motion.div>
+          </div>
+        </div>
+
+        {/* Sections Wrapper */}
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-8 md:px-16 space-y-48 pb-64">
+
+          {/* About Section */}
+          <section id="about" className="pt-24 scroll-mt-24">
+            <SectionHeader title="About" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+              <div className="space-y-8">
+                <p className="text-3xl font-black italic text-black leading-tight tracking-tighter">
+                  Crafting the future of human-computer interaction through code and design.
+                </p>
+                <div className="space-y-6 text-zinc-500 font-medium text-lg leading-relaxed">
+                  {resumeData.find(i => i.id === 'about-me')?.bullets.map((bullet, i) => (
+                    <p key={i}>{bullet}</p>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
-
-          <motion.div
-            whileHover={{ rotate: 2, scale: 1.05 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className="relative w-72 h-72 md:w-[420px] md:h-[420px] rounded-[100px] overflow-hidden border-8 border-white bg-zinc-50 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.2)] p-2"
-          >
-            <div className="relative w-full h-full rounded-[60px] overflow-hidden">
-              <Image
-                src="/Induri.Aditya_Headshot.jpg"
-                alt="Aditya Induri"
-                fill
-                className="object-cover"
-                priority
-              />
-              {/* Decorative pointer to Enter Button */}
-              <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 w-10 h-10 text-black/70 -rotate-90 hidden lg:block">
-                <HandDrawnArrow type={1} />
+              <div className="bg-zinc-50 rounded-3xl p-12 border border-black/5 flex flex-col gap-8">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 rounded-full bg-black flex items-center justify-center text-white">
+                    <Monitor className="w-8 h-8" />
+                  </div>
+                  <h4 className="text-xl font-bold text-black">Tech Philosophy</h4>
+                </div>
+                <p className="text-zinc-500 font-medium">
+                  I believe that digital interfaces shouldn't just be tools, but immersive environments that tell a story. By blending 3D graphics, generative AI, and fluid motion, I aim to create software that feels alive.
+                </p>
               </div>
             </div>
-          </motion.div>
-        </motion.div>
+          </section>
 
-        {/* Additional Scribble Arrow for depth */}
-        <div className="absolute -top-12 -right-8 w-16 h-16 text-black/80 rotate-[15deg] pointer-events-none select-none hidden xl:block">
-          <HandDrawnArrow type={4} />
+
+          {/* Unified Timeline Container */}
+          <div className="space-y-48">
+            {/* Education Section */}
+            <section id="education" className="scroll-mt-24">
+              <SectionHeader title="Education" />
+              <div className="max-w-4xl mx-auto">
+                <div className="border-l-2 border-[#d0d0cc]/30 -mb-48 pb-48">
+                  {resumeData.filter(i => i.category === 'Education').map((item) => (
+                    <EducationItem key={item.id} item={item} />
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Experience Section */}
+            <section id="experience" className="scroll-mt-24">
+              <SectionHeader title="Experience" />
+              <div className="max-w-4xl mx-auto">
+                <div className="border-l-2 border-[#d0d0cc]/30">
+                  {resumeData.filter(i => i.category === 'Experience').map((item) => (
+                    <ExperienceItem key={item.id} item={item} />
+                  ))}
+                </div>
+              </div>
+            </section>
+          </div>
+
+          {/* Projects Section */}
+          <section id="projects" className="scroll-mt-24">
+            <SectionHeader title="Selected Projects" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {resumeData.filter(i => i.category === 'Projects').map((item) => (
+                <ProjectCard key={item.id} item={item} />
+              ))}
+            </div>
+          </section>
+
+          {/* Skills Section */}
+          <section id="skills" className="scroll-mt-24">
+            <SectionHeader title="Expertise" />
+            <div className="flex flex-wrap gap-4">
+              {Array.from(new Set(resumeData.flatMap(i => [i.interestTitle, ...i.bullets.map(b => b.split(' ')[0])]))).filter(s => s.length > 3).slice(0, 15).map((skill) => (
+                <div key={skill} className="px-8 py-4 bg-[#0c0c0c] text-white rounded-2xl font-black text-sm tracking-tighter uppercase italic hover:scale-105 hover:bg-zinc-800 transition-all cursor-default shadow-lg">
+                  {skill}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Contact Section */}
+          <section id="contact" className="scroll-mt-24 pt-32">
+            <div className="flex flex-col items-center text-center space-y-12">
+              <h2 className="text-6xl md:text-8xl font-black text-black tracking-tighter uppercase italic">Get in Touch</h2>
+              <p className="text-xl md:text-2xl text-zinc-500 font-medium max-w-2xl">
+                I'm always open to discussing new projects, creative ideas or opportunities to be part of your visions.
+              </p>
+              <div className="flex flex-col md:flex-row items-center gap-8">
+                <a
+                  href="mailto:adityainduri37@gmail.com"
+                  className="px-16 py-8 bg-black text-white rounded-[40px] font-black text-2xl uppercase italic hover:scale-105 transition-transform"
+                >
+                  Say Hello
+                </a>
+                <div className="flex items-center gap-4">
+                  {[
+                    { Icon: Github, href: "https://github.com/adityaki37" },
+                    { Icon: Linkedin, href: "https://linkedin.com/in/adityainduri" }
+                  ].map((item, i) => (
+                    <a
+                      key={i}
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-5 bg-zinc-50 rounded-full text-black hover:bg-black hover:text-white transition-all border border-black/5"
+                    >
+                      <item.Icon className="w-6 h-6" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+              <p className="pt-24 text-[10px] font-bold text-zinc-300 uppercase tracking-widest">
+                © 2026 Aditya Induri. Built with React, Three.js & Passion.
+              </p>
+            </div>
+          </section>
         </div>
-      </div>
-      <style jsx global>{`
+
+        <style jsx global>{`
         @keyframes css-drift {
           0%, 100% { 
             transform: translate(-50%, -50%) translate(var(--initial-x), var(--initial-y)) rotate(var(--rotate)) scale(var(--scale)); 
@@ -344,12 +562,12 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
             transform: translate(-50%, -50%) rotate(calc(var(--start-angle) + 15deg)) translate(195px) rotate(15deg);
           }
         }
-
         .animate-css-orbit {
           animation: css-orbit 10s ease-in-out infinite;
           will-change: transform, opacity;
         }
       `}</style>
+      </div>
     </div>
   );
 }

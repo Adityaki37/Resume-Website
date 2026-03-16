@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import SidebarTree from '@/components/SidebarTree';
 import InfoPanel from '@/components/InfoPanel';
@@ -27,6 +27,30 @@ export default function Home() {
   const [showResume, setShowResume] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [isInitializingHistory, setIsInitializingHistory] = useState(true);
+
+  // Sync background state with browser history
+  useEffect(() => {
+    // Initial state setup if needed
+    if (window.history.state === null) {
+      window.history.replaceState({ showCover: true }, '');
+    }
+    setIsInitializingHistory(false);
+
+    const handlePopState = (event: PopStateEvent) => {
+      const state = event.state;
+      if (state?.showScene) {
+        setShowCover(false);
+      } else {
+        setShowCover(true);
+        setSelectedId(null);
+        setHoveredId(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const handleSelect = (id: string | null, pId: string | null = null) => {
     setSelectedId(id);
@@ -48,6 +72,7 @@ export default function Home() {
 
   const handleStart = useCallback(() => {
     setShowCover(false);
+    window.history.pushState({ showScene: true }, '');
   }, []);
 
   return (
@@ -83,9 +108,13 @@ export default function Home() {
                 hoveredId={hoveredId}
                 onHover={setHoveredId}
                 onBack={() => {
-                  setShowCover(true);
-                  setSelectedId(null);
-                  setHoveredId(null);
+                  if (window.history.state?.showScene) {
+                    window.history.back();
+                  } else {
+                    setShowCover(true);
+                    setSelectedId(null);
+                    setHoveredId(null);
+                  }
                 }}
                 onResume={() => setShowResume(true)}
                 onLoadProgress={handleLoadProgress}
