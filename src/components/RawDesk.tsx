@@ -432,17 +432,27 @@ export default function InteractiveDesk({
         const activePC = targets.pc;
         activePC.castShadow = true;
         activePC.receiveShadow = true;
-        const worldPos = new THREE.Vector3();
-        activePC.getWorldPosition(worldPos);
-        activePC.geometry.computeBoundingBox();
-        const meshCenter = new THREE.Vector3();
-        activePC.geometry.boundingBox?.getCenter(meshCenter);
-        const worldCenter = activePC.localToWorld(meshCenter.clone());
+        
+        const box = new THREE.Box3().setFromObject(activePC);
+        const worldCenter = box.getCenter(new THREE.Vector3());
+        const worldBottom = new THREE.Vector3(worldCenter.x, box.min.y, worldCenter.z);
+        
         const pcPivot = new THREE.Group();
         pcPivot.name = 'pcPivot';
+        pcPivot.position.set(...sffItem.position);
+        
+        // Apply rotation from resumeData
+        const radX = THREE.MathUtils.degToRad(sffItem.rotation[0]);
+        const radY = THREE.MathUtils.degToRad(sffItem.rotation[1]);
+        const radZ = THREE.MathUtils.degToRad(sffItem.rotation[2]);
+        pcPivot.rotation.set(radX, radY, radZ);
+        
         deskPivot.add(pcPivot);
-        pcPivot.position.copy(deskPivot.worldToLocal(worldCenter));
         pcPivot.attach(activePC);
+        
+        const localBottom = pcPivot.worldToLocal(worldBottom.clone());
+        activePC.position.sub(localBottom);
+        
         activePC.userData = { id: 'arbitrage-app' };
         pcPivot.scale.set(sffItem.scale, sffItem.scale, sffItem.scale);
         meshes.push({ obj: pcPivot, item: sffItem, baseY: pcPivot.position.y, isModel: true });
@@ -458,22 +468,30 @@ export default function InteractiveDesk({
         monitor.receiveShadow = true;
         screen.castShadow = true;
         screen.receiveShadow = true;
-        const box = new THREE.Box3().setFromObject(monitor);
-        box.expandByObject(screen);
-        const worldCenter = box.getCenter(new THREE.Vector3());
-        const monitorPivot = new THREE.Group();
-        monitorPivot.name = 'monitorPivot';
+        
         const monitorBox = new THREE.Box3().setFromObject(monitor);
         monitorBox.expandByObject(screen);
         const worldAssemblyCenter = monitorBox.getCenter(new THREE.Vector3());
-        monitorPivot.position.set(0, 2.8, 0.15);
-        monitorPivot.rotation.y = 0;
+        const worldAssemblyBottom = new THREE.Vector3(worldAssemblyCenter.x, monitorBox.min.y, worldAssemblyCenter.z);
+        
+        const monitorPivot = new THREE.Group();
+        monitorPivot.name = 'monitorPivot';
+        monitorPivot.position.set(...delphiItem.position);
+        
+        // Apply rotation from resumeData
+        const radX = THREE.MathUtils.degToRad(delphiItem.rotation[0]);
+        const radY = THREE.MathUtils.degToRad(delphiItem.rotation[1]);
+        const radZ = THREE.MathUtils.degToRad(delphiItem.rotation[2]);
+        monitorPivot.rotation.set(radX, radY, radZ);
+        
         deskPivot.add(monitorPivot);
         monitorPivot.attach(monitor);
         monitorPivot.attach(screen);
-        const localAssemblyCenter = monitorPivot.worldToLocal(worldAssemblyCenter.clone());
-        monitor.position.sub(localAssemblyCenter);
-        screen.position.sub(localAssemblyCenter);
+        
+        const localAssemblyBottom = monitorPivot.worldToLocal(worldAssemblyBottom.clone());
+        monitor.position.sub(localAssemblyBottom);
+        screen.position.sub(localAssemblyBottom);
+        
         monitor.rotation.set(Math.PI / 2, Math.PI, Math.PI);
         screen.rotation.set(Math.PI / 2, Math.PI, Math.PI);
         monitor.userData = { id: 'delphi' };

@@ -260,7 +260,7 @@ export const resumeData: ResumeItem[] = [
     hoverScale: 1.4,
     glowEnabled: true,
     rotation: [0, 0, 0],
-    position: [0, 2.8, 0.15], // Relative to deskPivot
+    position: [0, 2.53, 0.1], // Relative to deskPivot
     shape: 'monitor',
     color: '#00ffff',
     clickable: true,
