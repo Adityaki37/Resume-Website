@@ -351,8 +351,8 @@ export default function InteractiveDesk({
         contactGroup.position.set(0, 0.9, 0); // Spaced 0.7 from Resume PDF (1.6)
         contactGroup.rotation.y = 0.4;
 
-        const totalWidth = 2.4;
-        const hWidth = 1.8; // Increased from 1.6 to fix clipping
+        const totalWidth = 2.2;
+        const hWidth = 1.6;
         const sWidth = 0.3; // Reduced from 0.4 to keep total width 2.4
         const defaultFont = '900 72px Inter, sans-serif';
 
@@ -370,8 +370,8 @@ export default function InteractiveDesk({
           // Square canvases for icons to prevent stretching
           const canvas = document.createElement('canvas');
           if (type === 'text') {
-            canvas.width = 1024; // Doubled from 512 to provide massive breathing room
-            canvas.height = 256;
+            canvas.width = 512; // Match the other signboard texture aspect ratio to avoid squashing the text
+            canvas.height = 128;
           } else {
             canvas.width = 256;
             canvas.height = 256;
@@ -385,7 +385,19 @@ export default function InteractiveDesk({
             ctx.textBaseline = 'middle';
 
             if (type === 'text') {
-              ctx.font = font; // Use passed custom font
+              const sizeMatch = font.match(/(\d+)px/);
+              const baseFontSize = sizeMatch ? parseInt(sizeMatch[1], 10) : 72;
+              const maxTextWidth = canvas.width * 0.88;
+              let fittedFont = font;
+              let fittedSize = baseFontSize;
+
+              ctx.font = fittedFont;
+              while (ctx.measureText(labelOrId).width > maxTextWidth && fittedSize > 10) {
+                fittedSize -= 1;
+                fittedFont = font.replace(/\d+px/, `${fittedSize}px`);
+                ctx.font = fittedFont;
+              }
+
               ctx.fillText(labelOrId, canvas.width / 2, canvas.height / 2);
             } else if (type === 'linkedin') {
               ctx.font = 'bold 120px Inter, system-ui, sans-serif';
@@ -407,7 +419,7 @@ export default function InteractiveDesk({
           }
 
           const texture = new THREE.CanvasTexture(canvas);
-          const labelWidth = type === 'text' ? width * 0.95 : width * 0.85; // Maximize text space to fix clipping
+          const labelWidth = type === 'text' ? 1.4 : width * 0.85;
           const labelHeight = 0.35; // Match createBoard
           const label = new THREE.Mesh(new THREE.PlaneGeometry(labelWidth, labelHeight), new THREE.MeshBasicMaterial({ map: texture, transparent: true }));
           label.position.set(0, 0, 0.051);
@@ -431,7 +443,7 @@ export default function InteractiveDesk({
           contactGroup.add(line);
         };
 
-        createSegment('text', 'CONTACT ME', -(totalWidth / 2) + hWidth / 2, hWidth, 'ui-contact-header', '900 72px Inter, sans-serif');
+        createSegment('text', 'CONTACT ME', -(totalWidth / 2) + hWidth / 2, hWidth, 'ui-contact-header', '900 71px Inter, sans-serif');
         createLine(-(totalWidth / 2) + hWidth);
         createSegment('linkedin', '', -(totalWidth / 2) + hWidth + sWidth / 2, sWidth, 'ui-linkedin');
         createLine(-(totalWidth / 2) + hWidth + sWidth);
@@ -920,7 +932,7 @@ export default function InteractiveDesk({
           return;
         }
         if (currentHover === 'ui-linkedin' || currentHover === 'ui-contact-header') {
-          window.open('https://linkedin.com/in/adityainduri', '_blank');
+          window.open('https://www.linkedin.com/in/aditya-induri/', '_blank');
           return;
         }
         if (currentHover === 'ui-email') {

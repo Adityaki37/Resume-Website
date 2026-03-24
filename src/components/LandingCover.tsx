@@ -276,6 +276,12 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
   const isMobile = useIsMobile();
 
   const canEnter = !RESTRICT_MOBILE_ACCESS || !isMobile;
+  const showDesktopOnlyState = RESTRICT_MOBILE_ACCESS && isMobile;
+  const buttonLabel = showDesktopOnlyState
+    ? 'Use Desktop'
+    : isLoading
+      ? `Loading ${loadingProgress}%`
+      : 'Enter !';
 
   const handleStartInteraction = (e: React.MouseEvent) => {
     if (isRippleActive || isLoading || !canEnter) return;
@@ -376,8 +382,8 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
                   >
                     <div className="flex flex-col items-center gap-2">
                       <div className="relative">
-                        <span className={`font-black tracking-tighter text-4xl uppercase italic transition-all duration-500 text-center ${isLoading ? 'opacity-50' : 'opacity-100'}`}>
-                          {isLoading ? `Loading ${loadingProgress}%` : 'Enter !'}
+                        <span className={`font-black tracking-tighter text-4xl uppercase italic transition-all duration-500 text-center ${isLoading && !showDesktopOnlyState ? 'opacity-50' : 'opacity-100'}`}>
+                          {buttonLabel}
                         </span>
 
                         {!isLoading && canEnter && (
@@ -410,7 +416,7 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
                 <div className="flex items-center gap-2 relative">
                   {[
                     { Icon: Github, href: "https://github.com/adityaki37" },
-                    { Icon: Linkedin, href: "https://linkedin.com/in/adityainduri" },
+                    { Icon: Linkedin, href: "https://www.linkedin.com/in/aditya-induri/" },
                     { Icon: Mail, href: "mailto:adityainduri37@gmail.com" }
                   ].map((item, i) => (
                     <motion.a
@@ -552,7 +558,7 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
                 <div className="flex items-center gap-4">
                   {[
                     { Icon: Github, href: "https://github.com/adityaki37" },
-                    { Icon: Linkedin, href: "https://linkedin.com/in/adityainduri" }
+                    { Icon: Linkedin, href: "https://www.linkedin.com/in/aditya-induri/" }
                   ].map((item, i) => (
                     <a
                       key={i}
