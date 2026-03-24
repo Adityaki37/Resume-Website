@@ -27,6 +27,14 @@ export default function InteractiveDesk({
 }: InteractiveDeskProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const selectedItem = useMemo(() => resumeData.find(i => i.id === selectedId), [selectedId]);
+  const showCoverRef = useRef(Boolean(showCover));
+  const sceneLoadedRef = useRef(false);
+  const needsWarmupRef = useRef(false);
+  const animationFrameRef = useRef<number | null>(null);
+  const backgroundTimerRef = useRef<number | null>(null);
+  const renderFrameRef = useRef<(() => void) | null>(null);
+  const startAnimationRef = useRef<(() => void) | null>(null);
+  const startBackgroundAnimationRef = useRef<(() => void) | null>(null);
 
   // Refs to hold mutable state for the animation loop without triggering scene rebuilds
   const targetRef = useRef<THREE.Vector3 | null>(null);
@@ -38,6 +46,16 @@ export default function InteractiveDesk({
   const prevMouseRef = useRef({ x: 0, y: 0 });
   // Initialize yaw to 0 for cinematic entry, pitch from config
   const rotationRef = useRef({ yaw: 0, pitch: cameraConfig.recenterRotation.pitch });
+
+  useEffect(() => {
+    showCoverRef.current = Boolean(showCover);
+    if (showCover) {
+      startBackgroundAnimationRef.current?.();
+    } else {
+      startAnimationRef.current?.();
+      renderFrameRef.current?.();
+    }
+  }, [showCover]);
 
   useEffect(() => {
     if (selectedItem) {
@@ -96,7 +114,7 @@ export default function InteractiveDesk({
     scene.background = new THREE.Color('#D0D0CC'); // Updated background color
 
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-    
+
     // Dynamic FOV based on aspect ratio
     const updateFOV = () => {
       if (width < height) { // Mobile Portrait
@@ -170,15 +188,39 @@ export default function InteractiveDesk({
     // 3. Shared Loading Infrastructure
     const manager = new THREE.LoadingManager();
     const loader = new GLTFLoader(manager);
+    let warmupTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    let warmupIdleId: number | null = null;
 
     manager.onProgress = (url, itemsLoaded, itemsTotal) => {
       if (onLoadProgress) onLoadProgress(Math.round((itemsLoaded / itemsTotal) * 100));
     };
 
-    manager.onLoad = () => {
-      // GPU Warm-up: Compile shaders and upload textures before signaling ready
+    const warmupScene = () => {
+      if (!sceneLoadedRef.current || !needsWarmupRef.current) return;
+      renderer.render(scene, camera);
       renderer.compile(scene, camera);
-      // Give a tiny bit of time for GPU to settle
+      needsWarmupRef.current = false;
+    };
+
+    manager.onLoad = () => {
+      sceneLoadedRef.current = true;
+      needsWarmupRef.current = true;
+
+      // Warm the scene in the background when the browser is idle so entering still feels seamless.
+      if (showCoverRef.current) {
+        if ('requestIdleCallback' in window) {
+          warmupIdleId = window.requestIdleCallback(() => {
+            warmupScene();
+          }, { timeout: 2000 });
+        } else {
+          warmupTimeoutId = setTimeout(() => {
+            warmupScene();
+          }, 1000);
+        }
+      } else {
+        warmupScene();
+      }
+
       setTimeout(() => {
         if (onLoadComplete) onLoadComplete();
       }, 300);
@@ -432,33 +474,36 @@ export default function InteractiveDesk({
         const activePC = targets.pc;
         activePC.castShadow = true;
         activePC.receiveShadow = true;
-        
+
+        activePC.updateMatrixWorld(true);
         const box = new THREE.Box3().setFromObject(activePC);
         const worldCenter = box.getCenter(new THREE.Vector3());
-        const worldBottom = new THREE.Vector3(worldCenter.x, box.min.y, worldCenter.z);
-        
+
         const pcPivot = new THREE.Group();
         pcPivot.name = 'pcPivot';
-        pcPivot.position.set(...sffItem.position);
-        
-        // Apply rotation from resumeData
-        const radX = THREE.MathUtils.degToRad(sffItem.rotation[0]);
-        const radY = THREE.MathUtils.degToRad(sffItem.rotation[1]);
-        const radZ = THREE.MathUtils.degToRad(sffItem.rotation[2]);
-        pcPivot.rotation.set(radX, radY, radZ);
-        
-        deskPivot.add(pcPivot);
-        pcPivot.attach(activePC);
-        
-        const localBottom = pcPivot.worldToLocal(worldBottom.clone());
-        activePC.position.sub(localBottom);
-        
+        const pcHoverGroup = new THREE.Group();
+        pcHoverGroup.name = 'pcHoverGroup';
+
+        desk.add(pcPivot);
+        const localCenter = desk.worldToLocal(worldCenter.clone());
+        pcPivot.position.copy(localCenter);
+        pcPivot.add(pcHoverGroup);
+
+        pcHoverGroup.attach(activePC);
+        activePC.updateMatrixWorld(true);
+
+        const centeredBox = new THREE.Box3().setFromObject(activePC);
+        const centeredWorld = centeredBox.getCenter(new THREE.Vector3());
+        const centeredLocal = pcHoverGroup.worldToLocal(centeredWorld.clone());
+        const centeredSize = centeredBox.getSize(new THREE.Vector3());
+        activePC.position.sub(centeredLocal);
+        pcHoverGroup.userData.hoverLiftPerScale = centeredSize.y / 2;
         activePC.userData = { id: 'arbitrage-app' };
-        pcPivot.scale.set(sffItem.scale, sffItem.scale, sffItem.scale);
-        meshes.push({ obj: pcPivot, item: sffItem, baseY: pcPivot.position.y, isModel: true });
+
+        meshes.push({ obj: pcHoverGroup, item: sffItem, baseY: pcPivot.position.y, isModel: true });
         const light = new THREE.PointLight(new THREE.Color(sffItem.color), 0, 3);
         light.name = 'hoverLight';
-        pcPivot.add(light);
+        pcHoverGroup.add(light);
       }
 
       if (targets.monitor && targets.screen && delphiItem) {
@@ -468,35 +513,28 @@ export default function InteractiveDesk({
         monitor.receiveShadow = true;
         screen.castShadow = true;
         screen.receiveShadow = true;
-        
+
+        monitor.updateMatrixWorld(true);
+        screen.updateMatrixWorld(true);
+
         const monitorBox = new THREE.Box3().setFromObject(monitor);
         monitorBox.expandByObject(screen);
         const worldAssemblyCenter = monitorBox.getCenter(new THREE.Vector3());
         const worldAssemblyBottom = new THREE.Vector3(worldAssemblyCenter.x, monitorBox.min.y, worldAssemblyCenter.z);
-        
+
         const monitorPivot = new THREE.Group();
         monitorPivot.name = 'monitorPivot';
-        monitorPivot.position.set(...delphiItem.position);
-        
-        // Apply rotation from resumeData
-        const radX = THREE.MathUtils.degToRad(delphiItem.rotation[0]);
-        const radY = THREE.MathUtils.degToRad(delphiItem.rotation[1]);
-        const radZ = THREE.MathUtils.degToRad(delphiItem.rotation[2]);
-        monitorPivot.rotation.set(radX, radY, radZ);
-        
-        deskPivot.add(monitorPivot);
+
+        desk.add(monitorPivot);
+        const localAssemblyBottom = desk.worldToLocal(worldAssemblyBottom.clone());
+        monitorPivot.position.copy(localAssemblyBottom);
+
         monitorPivot.attach(monitor);
         monitorPivot.attach(screen);
-        
-        const localAssemblyBottom = monitorPivot.worldToLocal(worldAssemblyBottom.clone());
-        monitor.position.sub(localAssemblyBottom);
-        screen.position.sub(localAssemblyBottom);
-        
-        monitor.rotation.set(Math.PI / 2, Math.PI, Math.PI);
-        screen.rotation.set(Math.PI / 2, Math.PI, Math.PI);
+
         monitor.userData = { id: 'delphi' };
         screen.userData = { id: 'delphi' };
-        monitorPivot.scale.set(delphiItem.scale, delphiItem.scale, delphiItem.scale);
+
         meshes.push({ obj: monitorPivot, item: delphiItem!, baseY: monitorPivot.position.y, isModel: true });
         const light = new THREE.PointLight(new THREE.Color(delphiItem.color), 0, 3);
         light.position.set(0, 0, 1.0);
@@ -742,8 +780,11 @@ export default function InteractiveDesk({
       const obj = targetMesh.obj;
       const initialScale = obj.userData.initialScale || obj.scale.clone();
       if (!obj.userData.initialScale) obj.userData.initialScale = initialScale.clone();
+      const initialPosition = obj.userData.initialPosition || obj.position.clone();
+      if (!obj.userData.initialPosition) obj.userData.initialPosition = initialPosition.clone();
 
       gsap.killTweensOf(obj.scale);
+      gsap.killTweensOf(obj.position);
 
       if (isHovering) {
         const hoverScale = targetMesh.item.hoverScale;
@@ -754,11 +795,25 @@ export default function InteractiveDesk({
           duration: 0.5,
           ease: "back.out(2)"
         });
+        gsap.to(obj.position, {
+          x: initialPosition.x,
+          y: initialPosition.y + ((obj.userData.hoverLiftPerScale || 0) * (hoverScale - 1)),
+          z: initialPosition.z,
+          duration: 0.5,
+          ease: "back.out(2)"
+        });
       } else {
         gsap.to(obj.scale, {
           x: initialScale.x,
           y: initialScale.y,
           z: initialScale.z,
+          duration: 0.3,
+          ease: "back.out(2)"
+        });
+        gsap.to(obj.position, {
+          x: initialPosition.x,
+          y: initialPosition.y,
+          z: initialPosition.z,
           duration: 0.3,
           ease: "back.out(2)"
         });
@@ -901,12 +956,22 @@ export default function InteractiveDesk({
     };
     window.addEventListener('resize', handleResize);
 
-    let animationFrameId: number;
     const clock = new THREE.Clock();
 
-    const animate = () => {
-      animationFrameId = requestAnimationFrame(animate);
-      const delta = clock.getDelta();
+    const renderFrame = () => {
+      if (!sceneLoadedRef.current) return;
+
+      renderer.render(scene, camera);
+    };
+
+    renderFrameRef.current = renderFrame;
+
+    const advanceScene = (delta: number) => {
+      if (!sceneLoadedRef.current) return;
+
+      if (needsWarmupRef.current && !showCoverRef.current) {
+        warmupScene();
+      }
 
       mixers.current.forEach(m => m.update(delta));
 
@@ -968,14 +1033,73 @@ export default function InteractiveDesk({
       }
 
       camera.lookAt(cameraTarget);
-
-      renderer.render(scene, camera);
+      renderFrame();
     };
 
-    animate();
+    const animate = () => {
+      animationFrameRef.current = requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      advanceScene(delta);
+    };
+
+    const startAnimation = () => {
+      if (backgroundTimerRef.current !== null) {
+        clearTimeout(backgroundTimerRef.current);
+        backgroundTimerRef.current = null;
+      }
+      if (animationFrameRef.current !== null) return;
+      clock.start();
+      clock.getDelta();
+      animate();
+    };
+
+    startAnimationRef.current = startAnimation;
+
+    const startBackgroundAnimation = () => {
+      if (!showCoverRef.current || backgroundTimerRef.current !== null || animationFrameRef.current !== null) return;
+
+      const tick = () => {
+        backgroundTimerRef.current = window.setTimeout(() => {
+          backgroundTimerRef.current = null;
+          advanceScene(clock.getDelta());
+
+          if (showCoverRef.current) {
+            tick();
+          }
+        }, 1000 / 12);
+      };
+
+      clock.start();
+      clock.getDelta();
+      tick();
+    };
+
+    startBackgroundAnimationRef.current = startBackgroundAnimation;
+
+    if (showCoverRef.current) {
+      startBackgroundAnimation();
+    } else {
+      startAnimation();
+    }
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      if (backgroundTimerRef.current !== null) {
+        clearTimeout(backgroundTimerRef.current);
+        backgroundTimerRef.current = null;
+      }
+      if (warmupIdleId !== null && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(warmupIdleId);
+      }
+      if (warmupTimeoutId !== null) {
+        clearTimeout(warmupTimeoutId);
+      }
+      renderFrameRef.current = null;
+      startAnimationRef.current = null;
+      startBackgroundAnimationRef.current = null;
       window.removeEventListener('resize', handleResize);
       renderer.domElement.removeEventListener('pointerdown', handlePointerDown);
       renderer.domElement.removeEventListener('pointermove', handlePointerMove);

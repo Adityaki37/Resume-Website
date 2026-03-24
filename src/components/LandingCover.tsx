@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useState, useMemo, useEffect, useRef, memo } from 'react';
 import { resumeData } from '@/data/resume';
 import { Link as ScrollLink } from 'react-scroll';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 // --- CONFIGURATION ---
 const RESTRICT_MOBILE_ACCESS = true;
@@ -126,8 +127,8 @@ const ProjectCard = ({ item }: { item: any }) => (
       ))}
     </ul>
 
-    <div className="mt-auto pt-4 flex items-center justify-between border-t border-black/5 group-hover:border-white/10">
-      <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">Project Detail</span>
+    <div className="mt-auto pt-4 flex items-center justify-between border-t border-black/5 text-zinc-400 group-hover:border-white/10 group-hover:text-zinc-300">
+      <span className="text-[10px] font-bold uppercase tracking-widest">Project Detail</span>
       <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
     </div>
   </div>
@@ -272,16 +273,7 @@ interface LandingCoverProps {
 export default function LandingCover({ onStart, isLoading, loadingProgress }: LandingCoverProps) {
   const [isRippleActive, setIsRippleActive] = useState(false);
   const [ripplePos, setRipplePos] = useState({ x: 0, y: 0 });
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(/Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent) || window.innerWidth < 1024);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  const isMobile = useIsMobile();
 
   const canEnter = !RESTRICT_MOBILE_ACCESS || !isMobile;
 
