@@ -425,7 +425,7 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
                     whileHover={isLoading || !canEnter ? {} : { scale: 1.05 }}
                     whileTap={isLoading || !canEnter ? {} : { scale: 0.95 }}
                     className={`group relative flex items-center justify-center gap-4 rounded-[40px] transition-all duration-500 shadow-2xl ${showDesktopOnlyState
-                      ? 'px-8 py-5 bg-black text-white border-2 border-black shadow-black/20 cursor-not-allowed'
+                      ? 'max-w-[calc(100vw-4rem)] px-5 py-4 bg-black text-white border-2 border-black shadow-black/20 cursor-not-allowed'
                       : isLoading
                         ? 'px-16 py-8 bg-zinc-100 text-zinc-400 cursor-not-allowed border-2 border-zinc-200'
                         : 'px-16 py-8 bg-black text-white border-2 border-black shadow-black/20'
@@ -448,8 +448,8 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
 
                       {showDesktopOnlyState ? (
                         <div className="flex items-center gap-2 opacity-100">
-                          <Monitor className="w-5 h-5" />
-                          <span className="text-[11px] font-bold tracking-[0.22em] uppercase whitespace-nowrap">
+                          <Monitor className="w-4 h-4 shrink-0" />
+                          <span className="text-[9px] font-bold tracking-[0.16em] uppercase whitespace-nowrap">
                             Use desktop for full experience
                           </span>
                         </div>
