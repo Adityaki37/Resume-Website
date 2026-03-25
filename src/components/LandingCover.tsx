@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Linkedin, Mail, ArrowRight, Monitor, Menu, X } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useMemo, useEffect, useRef, memo } from 'react';
+import { useState, useMemo, useEffect, memo } from 'react';
 import { resumeData } from '@/data/resume';
 import { Link as ScrollLink } from 'react-scroll';
 import { useIsMobile } from '@/lib/useIsMobile';
