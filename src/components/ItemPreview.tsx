@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import Image from 'next/image';
-import { resumeData } from '../data/resume';
+import { involvementsPreviewConfig, resumeData } from '../data/resume';
 
 interface ItemPreviewProps {
   itemId: string;
@@ -26,6 +26,8 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
     const scene = new THREE.Scene();
     const spinGroup = new THREE.Group();
     const displayGroup = new THREE.Group();
+    const fitGroup = new THREE.Group();
+    displayGroup.add(fitGroup);
     spinGroup.add(displayGroup);
     scene.add(spinGroup);
 
@@ -79,19 +81,31 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
 
     const loader = new GLTFLoader();
     const shape = item?.shape;
+    const previewConfig = isInvolvementsPreview ? involvementsPreviewConfig : item?.previewConfig;
 
-    const applyPreviewRotation = (target: THREE.Object3D) => {
-      if (isInvolvementsPreview) {
-        target.rotation.set(THREE.MathUtils.degToRad(-8), THREE.MathUtils.degToRad(28), THREE.MathUtils.degToRad(-2));
-      } else if (item?.previewConfig?.rotation) {
+    const applyPreviewTransform = (target: THREE.Object3D) => {
+      if (previewConfig?.rotation) {
         target.rotation.set(
-          THREE.MathUtils.degToRad(item.previewConfig.rotation[0]),
-          THREE.MathUtils.degToRad(item.previewConfig.rotation[1]),
-          THREE.MathUtils.degToRad(item.previewConfig.rotation[2])
+          THREE.MathUtils.degToRad(previewConfig.rotation[0]),
+          THREE.MathUtils.degToRad(previewConfig.rotation[1]),
+          THREE.MathUtils.degToRad(previewConfig.rotation[2])
         );
       } else {
         target.rotation.set(0, 0, 0);
       }
+
+      if (previewConfig?.position) {
+        target.position.set(
+          previewConfig.position[0],
+          previewConfig.position[1],
+          previewConfig.position[2]
+        );
+      } else {
+        target.position.set(0, 0, 0);
+      }
+
+      const previewScale = previewConfig?.scale ?? 1;
+      target.scale.setScalar(previewScale);
     };
 
     const finalizeModel = (model: THREE.Object3D) => {
@@ -112,10 +126,10 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
           }
         }
       });
-      displayGroup.clear();
-      displayGroup.add(model);
-      applyPreviewRotation(displayGroup);
-      fitToView(displayGroup);
+      fitGroup.clear();
+      fitGroup.add(model);
+      fitToView(fitGroup);
+      applyPreviewTransform(displayGroup);
     };
 
     if (isInvolvementsPreview) {
@@ -254,11 +268,6 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
         mesh = monitorGroup;
       } else mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), createMat());
       finalizeModel(mesh);
-      if (item?.previewConfig?.position) {
-        mesh.position.x += item.previewConfig.position[0];
-        mesh.position.y += item.previewConfig.position[1];
-        mesh.position.z += item.previewConfig.position[2];
-      }
     }
 
     const resizeObserver = new ResizeObserver(() => {
@@ -274,8 +283,8 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
     let animationFrameId: number;
       const animate = () => {
         animationFrameId = requestAnimationFrame(animate);
-      const speed = isInvolvementsPreview ? 0.006 : item?.previewConfig?.rotationSpeed ?? 0.005;
-      if (isInvolvementsPreview || item?.previewConfig?.autoRotate !== false) spinGroup.rotation.y += speed;
+      const speed = previewConfig?.rotationSpeed ?? 0.005;
+      if (previewConfig?.autoRotate !== false) spinGroup.rotation.y += speed;
         renderer.render(scene, camera);
       };
     animate();
@@ -297,7 +306,7 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
             src={item.imageUrl}
             alt={item.title}
             fill
-            className="object-cover scale-110"
+            className="object-cover object-[50%_18%] scale-110"
             priority
           />
         </div>

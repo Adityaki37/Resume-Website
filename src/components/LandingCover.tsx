@@ -1,10 +1,11 @@
-'use client';
+﻿'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Linkedin, Mail, ArrowRight, Monitor, Menu, X } from 'lucide-react';
+import { Linkedin, Mail, ArrowRight, Monitor, Menu, X, ChevronsDown, Heart } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState, useMemo, useEffect, memo } from 'react';
-import { resumeData } from '@/data/resume';
+import { landingPageAbout, resumeData } from '@/data/resume';
 import { Link as ScrollLink } from 'react-scroll';
 import { useIsMobile } from '@/lib/useIsMobile';
 
@@ -108,31 +109,63 @@ const SectionHeader = ({ title }: { title: string }) => (
   </div>
 );
 
-const ProjectCard = ({ item }: { item: any }) => (
-  <div className="group relative bg-[#f4f4f2]/50 backdrop-blur-sm border border-[#d0d0cc]/30 rounded-3xl p-8 hover:bg-black hover:text-white transition-[background-color,color,transform,box-shadow,border-color] duration-500 shadow-sm hover:shadow-2xl flex flex-col h-full">
-    <div className="flex justify-between items-start mb-6">
-      <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-400 group-hover:text-zinc-500">{item.date}</span>
-      <div className="w-10 h-10 rounded-full bg-black/5 group-hover:bg-white/10 flex items-center justify-center text-black group-hover:text-white transition-colors">
-        <HandDrawnArrow type={4} className="w-5 h-5" />
+const PROJECT_CARD_LINKS: Record<string, { href: string; external?: boolean }> = {
+  'hephasbot': { href: 'https://hephasbot.com', external: true },
+  'fireboy-watergirl': { href: '/blog' },
+};
+
+const ProjectCard = ({ item }: { item: any }) => {
+  const linkConfig = PROJECT_CARD_LINKS[item.id];
+  const hideFooterArrow = item.id === 'delphi' || item.id === 'arbitrage-app';
+  const hideFooterLabel = item.id === 'delphi' || item.id === 'arbitrage-app';
+
+  const cardContent = (
+    <div className="group relative bg-[#f4f4f2]/50 backdrop-blur-sm border border-[#d0d0cc]/30 rounded-3xl p-8 hover:bg-black hover:text-white transition-[background-color,color,transform,box-shadow,border-color] duration-500 shadow-sm hover:shadow-2xl flex flex-col h-full">
+      <div className="flex justify-between items-start mb-6">
+        <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-400 group-hover:text-zinc-500">{item.date}</span>
+      </div>
+      <h3 className="text-2xl font-black mb-2 tracking-tight text-black group-hover:text-white transition-colors">{item.title}</h3>
+      <p className="text-zinc-500 group-hover:text-zinc-300 font-medium mb-6 text-sm leading-relaxed transition-colors">{item.subtitle}</p>
+      <ul className="space-y-3 mb-8 text-black transition-colors group-hover:text-white">
+        {item.bullets.slice(0, 2).map((bullet: string, i: number) => (
+          <li key={i} className="grid grid-cols-[0.5rem_1fr] gap-3 text-sm font-medium leading-relaxed opacity-80 transition-colors">
+            <span className="flex h-[1.5em] items-center justify-center">
+              <span className="h-1 w-1 rounded-full bg-current shrink-0" />
+            </span>
+            <span>{bullet}</span>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-auto pt-4 flex items-center justify-between border-t border-black/5 text-zinc-400 group-hover:border-white/10 group-hover:text-zinc-300">
+        {!hideFooterLabel && (
+          <span className="text-[10px] font-bold uppercase tracking-widest">Project Detail</span>
+        )}
+        {!hideFooterArrow && (
+          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+        )}
       </div>
     </div>
-    <h3 className="text-2xl font-black mb-2 tracking-tight text-black group-hover:text-white transition-colors">{item.title}</h3>
-    <p className="text-zinc-500 group-hover:text-zinc-300 font-medium mb-6 text-sm leading-relaxed transition-colors">{item.subtitle}</p>
-    <ul className="space-y-3 mb-8 text-black transition-colors group-hover:text-white">
-      {item.bullets.slice(0, 2).map((bullet: string, i: number) => (
-        <li key={i} className="flex items-start gap-3 text-xs font-medium leading-relaxed opacity-80 transition-colors">
-          <span className="mt-1.5 w-1 h-1 rounded-full bg-current shrink-0" />
-          {bullet}
-        </li>
-      ))}
-    </ul>
+  );
 
-    <div className="mt-auto pt-4 flex items-center justify-between border-t border-black/5 text-zinc-400 group-hover:border-white/10 group-hover:text-zinc-300">
-      <span className="text-[10px] font-bold uppercase tracking-widest">Project Detail</span>
-      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-    </div>
-  </div>
-);
+  if (linkConfig?.external) {
+    return (
+      <a href={linkConfig.href} target="_blank" rel="noopener noreferrer" className="block h-full">
+        {cardContent}
+      </a>
+    );
+  }
+
+  if (linkConfig) {
+    return (
+      <Link href={linkConfig.href} className="block h-full">
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return cardContent;
+};
 
 const EducationItem = ({ item }: { item: any }) => (
   <div className="relative pl-12 pb-16 last:pb-0">
@@ -142,11 +175,13 @@ const EducationItem = ({ item }: { item: any }) => (
       <span className="text-sm font-bold text-zinc-400 uppercase tracking-widest bg-zinc-50 px-3 py-1 rounded-full whitespace-nowrap">{item.date}</span>
     </div>
     <p className="text-lg font-bold text-zinc-600 mb-6 italic">{item.subtitle}</p>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+    <div className="space-y-4">
       {item.bullets.map((bullet: string, i: number) => (
-        <div key={i} className="flex items-start gap-4">
-          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-black shrink-0" />
-          <p className="text-zinc-500 font-medium leading-relaxed max-w-2xl">{bullet}</p>
+        <div key={i} className="grid grid-cols-[0.75rem_1fr] gap-4 text-zinc-500 font-medium leading-relaxed">
+          <span className="flex h-[1.625em] items-center justify-center">
+            <span className="h-1.5 w-1.5 rounded-full bg-black shrink-0" />
+          </span>
+          <p className="max-w-2xl">{bullet}</p>
         </div>
       ))}
     </div>
@@ -163,9 +198,11 @@ const ExperienceItem = ({ item }: { item: any }) => (
     <p className="text-lg font-bold text-zinc-600 mb-6 italic">{item.subtitle}</p>
     <div className="space-y-4">
       {item.bullets.map((bullet: string, i: number) => (
-        <div key={i} className="flex items-start gap-4">
-          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-black shrink-0" />
-          <p className="text-zinc-500 font-medium leading-relaxed max-w-2xl">{bullet}</p>
+        <div key={i} className="grid grid-cols-[0.75rem_1fr] gap-4 text-zinc-500 font-medium leading-relaxed">
+          <span className="flex h-[1.625em] items-center justify-center">
+            <span className="h-1.5 w-1.5 rounded-full bg-black shrink-0" />
+          </span>
+          <p className="max-w-2xl">{bullet}</p>
         </div>
       ))}
     </div>
@@ -274,12 +311,23 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
   const [isRippleActive, setIsRippleActive] = useState(false);
   const [ripplePos, setRipplePos] = useState({ x: 0, y: 0 });
   const isMobile = useIsMobile();
+  const landingInterests = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          resumeData
+            .filter(
+              (item) => item.clickable && item.id !== 'about-me' && item.category !== 'Education'
+            )
+            .map((item) => item.interestTitle)
+        )
+      ),
+    []
+  );
 
   const canEnter = !RESTRICT_MOBILE_ACCESS || !isMobile;
   const showDesktopOnlyState = RESTRICT_MOBILE_ACCESS && isMobile;
-  const buttonLabel = showDesktopOnlyState
-    ? 'Use Desktop'
-    : isLoading
+  const buttonLabel = isLoading
       ? `Loading ${loadingProgress}%`
       : 'Enter !';
 
@@ -365,7 +413,7 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                Software engineer based in Ohio. crafting digital prototypes and immersive interfaces.
+                Glad your here! To learn more about me click enter for a fun experience or scroll through for a traditional one.
               </motion.p>
 
               <div className="flex flex-col items-start gap-12">
@@ -375,23 +423,25 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
                     disabled={isLoading || !canEnter}
                     whileHover={isLoading || !canEnter ? {} : { scale: 1.05 }}
                     whileTap={isLoading || !canEnter ? {} : { scale: 0.95 }}
-                    className={`group relative flex items-center justify-center gap-4 px-16 py-8 rounded-[40px] transition-all duration-500 shadow-2xl ${isLoading
+                    className={`group relative flex items-center justify-center gap-4 rounded-[40px] px-16 py-8 transition-all duration-500 shadow-2xl ${isLoading
                       ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed border-2 border-zinc-200'
-                      : 'bg-black text-white cursor-pointer border-2 border-black hover:bg-white hover:text-black shadow-black/20'
+                      : 'bg-black text-white border-2 border-black shadow-black/20'
                       } ${!canEnter && !isLoading ? 'cursor-not-allowed opacity-90' : ''}`}
                   >
                     <div className="flex flex-col items-center gap-2">
-                      <div className="relative">
-                        <span className={`font-black tracking-tighter text-4xl uppercase italic transition-all duration-500 text-center ${isLoading && !showDesktopOnlyState ? 'opacity-50' : 'opacity-100'}`}>
-                          {buttonLabel}
-                        </span>
+                      {!showDesktopOnlyState && (
+                        <div className="relative">
+                          <span className={`font-black tracking-tighter text-4xl uppercase italic transition-all duration-500 text-center ${isLoading ? 'opacity-50' : 'opacity-100'}`}>
+                            {buttonLabel}
+                          </span>
 
-                        {!isLoading && canEnter && (
-                          <div className="absolute left-[calc(100%+1.5rem)] top-1/2 -translate-y-1/2 pointer-events-none">
-                            <HandDrawnArrow type={0} className="w-12 h-12 transition-all duration-300" style={{ opacity: 1 }} />
-                          </div>
-                        )}
-                      </div>
+                          {!isLoading && canEnter && (
+                            <div className="absolute left-[calc(100%+1.5rem)] top-1/2 -translate-y-1/2 pointer-events-none">
+                              <HandDrawnArrow type={0} className="w-12 h-12 transition-all duration-300" style={{ opacity: 1 }} />
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {!isLoading && (
                         <div className="flex items-center gap-2 opacity-60">
@@ -453,42 +503,68 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
                     src="/Induri.Aditya_Headshot.jpg"
                     alt="Aditya Induri"
                     fill
-                    className="object-cover grayscale transition-[filter] duration-500 group-hover:grayscale-0"
+                    className="object-cover object-[50%_18%] scale-110 grayscale transition-[filter] duration-500 group-hover:grayscale-0"
                     priority
                   />
                 </div>
               </motion.div>
             </motion.div>
           </div>
+
+          <div className="pointer-events-none absolute inset-x-0 bottom-10 md:bottom-12 z-20 flex justify-center">
+            <ScrollLink
+              to="about"
+              containerId="landing-container"
+              smooth={true}
+              duration={900}
+              offset={-100}
+              className="pointer-events-auto group inline-flex flex-col items-center gap-2 px-5 py-3 text-center text-black/40 transition-colors hover:text-black cursor-pointer"
+            >
+              <div className="flex flex-col items-center leading-none">
+                <ChevronsDown className="w-4 h-4 animate-bounce" />
+                <ChevronsDown className="w-4 h-4 -mt-1 animate-bounce opacity-55 [animation-delay:150ms]" />
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-[10px] font-bold tracking-[0.24em] uppercase">Scroll For More</span>
+              </div>
+            </ScrollLink>
+          </div>
         </div>
 
         {/* Sections Wrapper */}
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-8 md:px-16 space-y-48 pb-64">
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-8 md:px-16 space-y-48 pb-32 md:pb-40">
 
           {/* About Section */}
           <section id="about" className="pt-24 scroll-mt-24">
             <SectionHeader title="About" />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+            <div className="grid grid-cols-1 gap-16 items-start lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-12">
               <div className="space-y-8">
                 <p className="text-3xl font-black italic text-black leading-tight tracking-tighter">
-                  Crafting the future of human-computer interaction through code and design.
+                  {landingPageAbout.headline}
                 </p>
                 <div className="space-y-6 text-zinc-500 font-medium text-lg leading-relaxed">
-                  {resumeData.find(i => i.id === 'about-me')?.bullets.map((bullet, i) => (
+                  {landingPageAbout.paragraphs.map((bullet, i) => (
                     <p key={i}>{bullet}</p>
                   ))}
                 </div>
               </div>
-              <div className="bg-zinc-50 rounded-3xl p-12 border border-black/5 flex flex-col gap-8">
-                <div className="flex items-center gap-6">
-                  <div className="w-16 h-16 rounded-full bg-black flex items-center justify-center text-white">
-                    <Monitor className="w-8 h-8" />
+              <div className="bg-zinc-50 rounded-3xl px-8 py-7 border border-black/5 flex flex-col gap-5 self-start max-w-[44rem] w-full">
+                <div className="flex items-center gap-5">
+                  <div className="w-14 h-14 rounded-full bg-black flex items-center justify-center text-white shrink-0">
+                    <Heart className="w-7 h-7" />
                   </div>
-                  <h4 className="text-xl font-bold text-black">Tech Philosophy</h4>
+                  <h4 className="text-xl font-bold text-black">Interests</h4>
                 </div>
-                <p className="text-zinc-500 font-medium">
-                  I believe that digital interfaces shouldn't just be tools, but immersive environments that tell a story. By blending 3D graphics, generative AI, and fluid motion, I aim to create software that feels alive.
-                </p>
+                <div className="flex flex-wrap gap-2.5">
+                  {landingInterests.map((interest) => (
+                    <span
+                      key={interest}
+                      className="rounded-full border border-black/10 bg-white px-4 py-1.5 text-sm font-semibold text-zinc-600 shadow-sm"
+                    >
+                      {interest}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </section>
@@ -540,7 +616,7 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
           </section>
 
           {/* Contact Section */}
-          <section id="contact" className="scroll-mt-24 pt-32">
+          <section id="contact" className="scroll-mt-24">
             <div className="flex flex-col items-center text-center space-y-12">
               <h2 className="text-6xl md:text-8xl font-black text-black tracking-tighter uppercase italic">Get in Touch</h2>
               <p className="text-xl md:text-2xl text-zinc-500 font-medium max-w-2xl">
@@ -569,8 +645,8 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
                   ))}
                 </div>
               </div>
-              <p className="pt-24 text-[10px] font-bold text-zinc-300 uppercase tracking-widest">
-                © 2026 Aditya Induri. Built with React, Three.js & Passion.
+              <p className="pt-12 md:pt-16 text-[10px] font-bold text-zinc-300 uppercase tracking-widest">
+                2026 Aditya Induri.
               </p>
             </div>
           </section>
@@ -608,3 +684,4 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
     </div>
   );
 }
+

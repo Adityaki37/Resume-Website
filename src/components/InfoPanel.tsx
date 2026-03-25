@@ -24,6 +24,16 @@ export default function InfoPanel({ selectedId, previewId, onClose }: InfoPanelP
   const item = resumeData.find(i => i.id === selectedId);
   const involvementItems = resumeData.filter(i => i.category === 'Involvements');
   const isCombinedInvolvements = selectedId === 'involvements';
+  const showInterestHeader =
+    !isCombinedInvolvements &&
+    !!item &&
+    item.id !== 'about-me' &&
+    item.category !== 'Education';
+  const headerLabel = isCombinedInvolvements
+    ? 'Involvements'
+    : item?.id === 'about-me'
+      ? 'About Me'
+      : item?.category;
 
   useEffect(() => {
     if (selectedId) {
@@ -50,13 +60,15 @@ export default function InfoPanel({ selectedId, previewId, onClose }: InfoPanelP
 
       <div className="p-5 md:p-6 border-b border-[#d0d0cc]/30 flex justify-between items-start sticky top-0 bg-[#fffffe] z-10 rounded-t-[2rem] md:rounded-t-2xl">
         <div className="flex-1">
-          <div className="flex items-center text-[9px] md:text-[10px] font-bold tracking-widest uppercase text-[#0c0c0c]/60 mb-1">
-            <span>{isCombinedInvolvements ? 'Category' : 'Interest'}</span>
-            <span className="mx-1.5 opacity-50">&bull;</span>
-            <span>{isCombinedInvolvements ? 'Involvements' : item?.interestTitle}</span>
-          </div>
+          {showInterestHeader && (
+            <div className="flex items-center text-[9px] md:text-[10px] font-bold tracking-widest uppercase text-[#0c0c0c]/60 mb-1">
+              <span>Interest</span>
+              <span className="mx-1.5 opacity-50">&bull;</span>
+              <span>{item?.interestTitle}</span>
+            </div>
+          )}
           <span className="text-[10px] font-bold tracking-wider uppercase text-[#0c0c0c]/40 mb-1 block">
-            {isCombinedInvolvements ? 'Involvements' : item?.category}
+            {headerLabel}
           </span>
           <h2 className="text-lg md:text-xl font-bold text-[#0c0c0c] pr-4 break-words leading-tight">
             {isCombinedInvolvements ? 'Involvements' : item?.title}

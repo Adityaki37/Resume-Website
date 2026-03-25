@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { ChevronRight, ChevronDown, Award, Briefcase, Code, Heart, ArrowLeft, ArrowRight, X, UserRound } from 'lucide-react';
 import { resumeData, ResumeCategory } from '../data/resume';
 import { cn } from '../lib/utils';
@@ -19,7 +19,14 @@ const CATEGORY_ICONS: Record<Exclude<ResumeCategory, 'Interests'>, React.Element
 
 export default function SidebarTree({ selectedId, onSelect }: SidebarTreeProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const aboutRef = useRef<HTMLDivElement | null>(null);
+  const educationRef = useRef<HTMLDivElement | null>(null);
+  const experienceRef = useRef<HTMLDivElement | null>(null);
+  const projectsRef = useRef<HTMLDivElement | null>(null);
+  const involvementsRef = useRef<HTMLDivElement | null>(null);
   const [expandedCats, setExpandedCats] = useState<Record<string, boolean>>({
+    About: false,
     Education: false,
     Experience: false,
     Projects: false,
@@ -29,6 +36,14 @@ export default function SidebarTree({ selectedId, onSelect }: SidebarTreeProps) 
   // Auto-expand the category that contains the selected item
   useEffect(() => {
     if (selectedId) {
+      if (selectedId === 'about-me') {
+        setExpandedCats(prev => ({ ...prev, About: true }));
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+          setIsOpen(false);
+        }
+        return;
+      }
+
       if (selectedId === 'involvements') {
         setExpandedCats(prev => ({ ...prev, Involvements: true }));
         if (typeof window !== 'undefined' && window.innerWidth < 768) {
@@ -52,19 +67,59 @@ export default function SidebarTree({ selectedId, onSelect }: SidebarTreeProps) 
     setExpandedCats(prev => ({ ...prev, [cat]: !prev[cat] }));
   };
 
+  const navigationOrder = useMemo(() => [
+    'about-me',
+    ...resumeData
+      .filter(item => item.category === 'Education')
+      .map(item => item.id),
+    ...resumeData
+      .filter(item => item.category === 'Experience' && item.id !== 'about-me')
+      .map(item => item.id),
+    ...resumeData
+      .filter(item => item.category === 'Projects')
+      .map(item => item.id),
+    'involvements',
+  ], []);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || !selectedId) return;
+
+    const targetRef =
+      selectedId === 'about-me'
+        ? aboutRef
+        : selectedId === 'involvements'
+          ? involvementsRef
+          : resumeData.find(item => item.id === selectedId)?.category === 'Education'
+            ? educationRef
+            : resumeData.find(item => item.id === selectedId)?.category === 'Experience'
+              ? experienceRef
+              : resumeData.find(item => item.id === selectedId)?.category === 'Projects'
+                ? projectsRef
+                : null;
+
+    if (!targetRef?.current) return;
+
+    targetRef.current.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+    });
+  }, [selectedId]);
+
   const handleNext = () => {
-    const currentIndex = selectedId ? resumeData.findIndex(item => item.id === selectedId) : -1;
-    const nextIndex = (currentIndex + 1) % resumeData.length;
-    onSelect(resumeData[nextIndex].id);
+    const currentIndex = selectedId ? navigationOrder.indexOf(selectedId) : -1;
+    const nextIndex = (currentIndex + 1 + navigationOrder.length) % navigationOrder.length;
+    onSelect(navigationOrder[nextIndex]);
   };
 
   const handlePrev = () => {
-    const currentIndex = selectedId ? resumeData.findIndex(item => item.id === selectedId) : 0;
-    const prevIndex = (currentIndex - 1 + resumeData.length) % resumeData.length;
-    onSelect(resumeData[prevIndex].id);
+    const currentIndex = selectedId ? navigationOrder.indexOf(selectedId) : 0;
+    const prevIndex = (currentIndex - 1 + navigationOrder.length) % navigationOrder.length;
+    onSelect(navigationOrder[prevIndex]);
   };
 
   const categories: Array<Exclude<ResumeCategory, 'Interests'>> = ['Education', 'Experience', 'Projects', 'Involvements'];
+  const isAboutExpanded = expandedCats.About;
 
   return (
     <>
@@ -99,21 +154,36 @@ export default function SidebarTree({ selectedId, onSelect }: SidebarTreeProps) 
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin scrollbar-thumb-gray-200">
-          <div className="space-y-1">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin scrollbar-thumb-gray-200">
+          <div ref={aboutRef} className="space-y-1">
             <button
-              onClick={() => onSelect('about-me')}
-              className="flex items-start gap-2 w-full px-2 py-1.5 text-sm font-semibold text-[#2e2e2c] hover:text-[#0c0c0c] hover:bg-[#0c0c0c]/5 rounded transition-colors group"
+              onClick={() => toggleCategory('About')}
+              className="flex items-center gap-2 w-full px-2 py-1.5 text-sm font-semibold leading-none text-[#2e2e2c] hover:text-[#0c0c0c] hover:bg-[#0c0c0c]/5 rounded transition-colors group"
             >
-              <ChevronRight className="w-4 h-4 shrink-0 mt-1 text-gray-400 group-hover:text-[#0c0c0c] transition-colors" />
-              <UserRound className="w-4 h-4 shrink-0 mt-1 self-start" />
-              <div className="min-w-0 text-left">
-                <div className="leading-none">About Me</div>
-                <div className="mt-1 text-xs font-medium text-[#2e2e2c]/55 normal-case tracking-normal">
-                  Aditya Induri
-                </div>
-              </div>
+              {isAboutExpanded ? (
+                <ChevronDown className="w-4 h-4 shrink-0 self-center text-[#0c0c0c]/70 group-hover:text-[#0c0c0c] transition-colors" />
+              ) : (
+                <ChevronRight className="w-4 h-4 shrink-0 self-center text-gray-400 group-hover:text-[#0c0c0c] transition-colors" />
+              )}
+              <UserRound className="w-4 h-4 shrink-0 self-center" />
+              <span className="self-center">About Me</span>
             </button>
+
+            {isAboutExpanded && (
+              <div className="ml-6 border-l border-[#0c0c0c]/10 pl-2 space-y-1 py-1">
+                <button
+                  onClick={() => onSelect('about-me')}
+                  className={cn(
+                    "block w-full text-left px-3 py-1.5 text-sm rounded transition-all duration-300 relative",
+                    selectedId === 'about-me'
+                      ? "bg-[#0c0c0c] text-[#fffffe] font-bold border-l-2 border-[#0c0c0c] shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
+                      : "text-[#2e2e2c]/70 hover:text-[#0c0c0c] hover:bg-[#0c0c0c]/5 border-l-2 border-transparent font-normal"
+                  )}
+                >
+                  Aditya Induri
+                </button>
+              </div>
+            )}
           </div>
 
           {categories.map((cat) => {
@@ -122,7 +192,19 @@ export default function SidebarTree({ selectedId, onSelect }: SidebarTreeProps) 
             const Icon = CATEGORY_ICONS[cat];
 
             return (
-              <div key={cat} className="space-y-1">
+              <div
+                key={cat}
+                ref={
+                  cat === 'Education'
+                    ? educationRef
+                    : cat === 'Experience'
+                      ? experienceRef
+                      : cat === 'Projects'
+                        ? projectsRef
+                        : involvementsRef
+                }
+                className="space-y-1"
+              >
                 <button
                   onClick={() => toggleCategory(cat)}
                   className="flex items-center gap-2 w-full px-2 py-1.5 text-sm font-semibold leading-none text-[#2e2e2c] hover:text-[#0c0c0c] hover:bg-[#0c0c0c]/5 rounded transition-colors group"

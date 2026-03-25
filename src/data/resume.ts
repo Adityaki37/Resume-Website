@@ -27,6 +27,7 @@ export interface ResumeItem {
   previewConfig?: {
     position?: [number, number, number];
     rotation?: [number, number, number];
+    scale?: number;
     rotationSpeed?: number;
     autoRotate?: boolean;
   };
@@ -36,20 +37,43 @@ export interface ResumeItem {
 export interface CameraConfig {
   minZoom: number;
   maxZoom: number;
+  introRotation: { yaw: number; pitch: number };
   recenterRotation: { yaw: number; pitch: number };
   recenterZoom: number;
+  orbitRadius: number;
+  recenterTarget: [number, number, number];
+  recenterOffset: [number, number, number];
 }
 
 export const cameraConfig: CameraConfig = {
   minZoom: 0.5,
   maxZoom: 1.8,
-  recenterRotation: { yaw: Math.PI / 4, pitch: 0.2 },
-  recenterZoom: 1.0,
+  introRotation: { yaw: 0, pitch: 0.2 },
+  recenterRotation: { yaw: 1.6387, pitch: 0.1872 },
+  recenterZoom: 1.7,
+  orbitRadius: 6,
+  recenterTarget: [0, 0, 2],
+  recenterOffset: [0, 1, 2],
 };
 
 export const signpostConfig = {
   position: [-2.5, 0, -2] as [number, number, number],
   rotationY: 90,
+};
+
+export const involvementsPreviewConfig = {
+  rotation: [-8, 28, -2] as [number, number, number],
+  position: [0, 0, 0] as [number, number, number],
+  scale: 1.3,
+  rotationSpeed: 0.005,
+  autoRotate: true,
+};
+
+export const landingPageAbout = {
+  headline: 'Passionate Builder & Operator',
+  paragraphs: [
+    "Hi! I'm Aditya Induri, a student studying Finance and Computer Science. I'm passionate about building and scaling ideas from concept to execution, particularly in areas I'm interested in like Robotics and AI. Feel free to check this website out and contact me if anything catches your eye!",
+  ],
 };
 
 export const resumeData: ResumeItem[] = [
@@ -78,6 +102,7 @@ export const resumeData: ResumeItem[] = [
     zoomDistance: 3,
     previewConfig: {
       rotation: [0, 90, 0],
+      scale: 1,
       rotationSpeed: 0.005,
       autoRotate: true,
     },
@@ -87,19 +112,18 @@ export const resumeData: ResumeItem[] = [
     title: 'Aditya Induri',
     interestTitle: 'Profile',
     category: 'Experience',
-    subtitle: 'Software Engineer & Innovator',
-    date: 'Founding Future Interfaces',
+    subtitle: 'Passionate Builder & Operator',
+    //date: 'Founding Future Interfaces',
     bullets: [
-      "I'm a software engineer passionate about creating immersive digital experiences that blur the line between utility and art.",
-      'Specializing in interactive 3D web applications, generative AI integration, and fintech prototypes.',
-      'Dedicated to driving innovation at the intersection of economics, finance, and technology.',
+      "Hi! I'm Aditya Induri, a student studying Finance and Computer Science. I'm passionate about building and scaling ideas from concept to execution, particularly in areas I'm interested in like Robotics and AI. Feel free to check this website out and contact me if anything catches your eye!",
+      'PS: The assets in the website are related to my interests and have an experience or project tied to them. Hover over and click an asset to explore or simply navigate using the previous and next buttons.',
     ],
     interestBullets: ['Bridging the gap between complex data and intuitive human-centric design.'],
     imageUrl: '/Induri.Aditya_Headshot.jpg',
     scale: 1,
     hoverScale: 1,
     glowEnabled: false,
-    rotation: [0, 0, 0],
+    rotation: [0, 0, 90],
     position: [0, 0, 0],
     shape: 'profile',
     color: '#000000',
@@ -130,7 +154,8 @@ export const resumeData: ResumeItem[] = [
     zoomDistance: 4,
     previewConfig: {
       rotation: [0, 0, 0],
-      rotationSpeed: 0.01,
+      scale: 2,
+      rotationSpeed: 0.005,
       autoRotate: true,
     },
   },
@@ -157,6 +182,13 @@ export const resumeData: ResumeItem[] = [
     color: '#d0d0cc',
     clickable: true,
     zoomDistance: 3.5,
+    previewConfig: {
+      rotation: [0, 0, 0],
+      position: [0, 0, 0],
+      scale: 1,
+      rotationSpeed: 0.005,
+      autoRotate: true,
+    },
   },
   {
     id: 'keybank',
@@ -181,9 +213,10 @@ export const resumeData: ResumeItem[] = [
     clickable: true,
     zoomDistance: 3,
     previewConfig: {
-      rotation: [0, 45, 90],
-      position: [0, -0.5, 0],
-      rotationSpeed: 0.02,
+      rotation: [90, 0, 90],
+      position: [0, 0, 0],
+      scale: 1.2,
+      rotationSpeed: 0.005,
       autoRotate: true,
     },
   },
@@ -211,6 +244,7 @@ export const resumeData: ResumeItem[] = [
     zoomDistance: 2.5,
     previewConfig: {
       rotation: [0, 180, 0],
+      scale: 1,
       rotationSpeed: 0.005,
       autoRotate: true,
     },
@@ -237,7 +271,8 @@ export const resumeData: ResumeItem[] = [
     clickable: true,
     zoomDistance: 3.5,
     previewConfig: {
-      rotation: [-90, 0, 0],
+      rotation: [0, 0, 0],
+      scale: 1.6,
       rotationSpeed: 0.005,
       autoRotate: true,
     },
@@ -267,14 +302,15 @@ export const resumeData: ResumeItem[] = [
     zoomDistance: 6,
     previewConfig: {
       rotation: [0, -90, 0],
-      rotationSpeed: 0.015,
+      scale: 1.2,
+      rotationSpeed: 0.005,
       autoRotate: true,
     },
   },
   {
     id: 'delphi',
     title: 'Delphi Investment',
-    interestTitle: 'Fintech',
+    interestTitle: 'Tech Reviews',
     category: 'Projects',
     subtitle: 'Founder / CEO',
     date: 'August 2023 - June 2024',
@@ -282,7 +318,7 @@ export const resumeData: ResumeItem[] = [
       'Founded a fintech startup that made structured notes more accessible by acting as a pooling and secondaries platform',
       'Performed customer/market validation, researched competitors, communicated with SMEs, and developed an alpha website',
     ],
-    interestBullets: ['Interested in building fintech products that make sophisticated financial tools more intuitive and accessible.'],
+    interestBullets: ['Interested in analyzing and comparing new technology products, tools, and user experiences.'],
     modelUrl: '/models/smartphone.glb',
     scale: 0.55,
     hoverScale: 1.35,
@@ -295,6 +331,7 @@ export const resumeData: ResumeItem[] = [
     zoomDistance: 2.8,
     previewConfig: {
       rotation: [0, 25, 0],
+      scale: 1,
       rotationSpeed: 0.005,
       autoRotate: true,
     },
@@ -321,6 +358,7 @@ export const resumeData: ResumeItem[] = [
     zoomDistance: 4,
     previewConfig: {
       rotation: [0, 0, 0],
+      scale: 1,
       rotationSpeed: 0.005,
       autoRotate: true,
     },

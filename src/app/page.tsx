@@ -170,11 +170,35 @@ export default function Home() {
                         </button>
                       </div>
                       <div className="flex-1 bg-white/5 relative">
-                        <iframe 
-                          src="/Resume.pdf" 
-                          className="w-full h-full border-none opacity-95"
-                          title="Resume Viewer"
-                        />
+                        <object
+                          data="/Resume.pdf#view=FitH"
+                          type="application/pdf"
+                          className="h-full w-full"
+                          aria-label="Resume Viewer"
+                        >
+                          <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center text-white">
+                            <p className="max-w-md text-sm text-white/80">
+                              Your browser could not display the PDF inline. You can still open or download it directly.
+                            </p>
+                            <div className="flex flex-wrap items-center justify-center gap-3">
+                              <a
+                                href="/Resume.pdf"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-white/90"
+                              >
+                                Open Resume
+                              </a>
+                              <a
+                                href="/Resume.pdf"
+                                download
+                                className="rounded-xl border border-white/25 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                              >
+                                Download PDF
+                              </a>
+                            </div>
+                          </div>
+                        </object>
                       </div>
                     </motion.div>
                   </motion.div>

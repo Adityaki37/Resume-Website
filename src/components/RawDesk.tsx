@@ -41,11 +41,11 @@ export default function InteractiveDesk({
   const targetRef = useRef<THREE.Vector3 | null>(null);
   const selectedRef = useRef<string | null>(selectedId);
   const mixers = useRef<THREE.AnimationMixer[]>([]);
-  const zoomRef = useRef<number>(1.0);
+  const zoomRef = useRef<number>(cameraConfig.recenterZoom);
   const isGrabbingRef = useRef(false);
   const prevMouseRef = useRef({ x: 0, y: 0 });
-  // Initialize yaw to 0 for cinematic entry, pitch from config
-  const rotationRef = useRef({ yaw: 0, pitch: cameraConfig.recenterRotation.pitch });
+  // Start from a separate intro angle, then pan into the shared overview/recenter view.
+  const rotationRef = useRef({ ...cameraConfig.introRotation });
 
   useEffect(() => {
     showCoverRef.current = Boolean(showCover);
@@ -68,6 +68,7 @@ export default function InteractiveDesk({
     if (!showCover) {
       gsap.to(rotationRef.current, {
         yaw: cameraConfig.recenterRotation.yaw,
+        pitch: cameraConfig.recenterRotation.pitch,
         duration: 2.5,
         ease: "power2.inOut"
       });
@@ -826,9 +827,9 @@ export default function InteractiveDesk({
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
     let currentHover: string | null = null;
-    const cameraTarget = new THREE.Vector3(0, 0, 0);
+    const cameraTarget = new THREE.Vector3(...cameraConfig.recenterTarget);
     const desiredCameraPosition = new THREE.Vector3();
-    const desiredCameraTarget = new THREE.Vector3(0, 0, 2);
+    const desiredCameraTarget = new THREE.Vector3(...cameraConfig.recenterTarget);
     let pendingPointerPosition: { clientX: number; clientY: number } | null = null;
     let hoverFrameId: number | null = null;
 
@@ -1071,7 +1072,7 @@ export default function InteractiveDesk({
       const zoom = zoomRef.current;
       const { yaw, pitch } = rotationRef.current;
 
-      const baseRadius = 6;
+      const baseRadius = cameraConfig.orbitRadius;
       const radius = baseRadius * zoom;
       const camX = Math.sin(yaw) * Math.cos(pitch) * radius;
       const camY = Math.sin(pitch) * radius;
@@ -1080,7 +1081,11 @@ export default function InteractiveDesk({
       const lerpFactor = 0.05;
 
       // Always stay in the orbital overview; selection should not reroute the camera.
-      desiredCameraPosition.set(camX, (1 * zoom) + camY, camZ + 2);
+      desiredCameraPosition.set(
+        cameraConfig.recenterTarget[0] + camX + cameraConfig.recenterOffset[0],
+        cameraConfig.recenterTarget[1] + camY + cameraConfig.recenterOffset[1],
+        cameraConfig.recenterTarget[2] + camZ + cameraConfig.recenterOffset[2]
+      );
       camera.position.lerp(desiredCameraPosition, lerpFactor);
       cameraTarget.lerp(desiredCameraTarget, lerpFactor);
 
@@ -1190,9 +1195,20 @@ export default function InteractiveDesk({
   }, []);
 
   const handleRecenter = () => {
-    // Sourced from cameraConfig
-    rotationRef.current = { ...cameraConfig.recenterRotation };
-    zoomRef.current = cameraConfig.recenterZoom;
+    // Smoothly pan back to the shared overview instead of snapping.
+    gsap.killTweensOf(rotationRef.current);
+    gsap.killTweensOf(zoomRef);
+    gsap.to(rotationRef.current, {
+      yaw: cameraConfig.recenterRotation.yaw,
+      pitch: cameraConfig.recenterRotation.pitch,
+      duration: 2.5,
+      ease: "power2.inOut"
+    });
+    gsap.to(zoomRef, {
+      current: cameraConfig.recenterZoom,
+      duration: 2.5,
+      ease: "power2.inOut"
+    });
     targetRef.current = null;
     selectedRef.current = null;
     onSelect(null);
@@ -1211,6 +1227,17 @@ export default function InteractiveDesk({
         <RotateCcw className="w-4 h-4 text-[#1a1a1a] group-hover:rotate-[-20deg] transition-transform" />
         <span className="text-sm font-semibold text-[#1a1a1a]">Recenter</span>
       </button>
+
+      {/*
+      Dev helper to capture the current camera view and paste it back into cameraConfig:
+      <button
+        onClick={copyCurrentView}
+        className="absolute bottom-24 right-6 z-20 flex items-center justify-center py-2 px-4 rounded-2xl bg-white/75 backdrop-blur-md hover:bg-white/95 transition-all border border-white/30 shadow-[0_8px_32px_rgba(0,0,0,0.08)] text-sm font-semibold text-[#1a1a1a] cursor-pointer"
+        title="Copy the current camera view as a recenter config snippet"
+      >
+        Copy View
+      </button>
+      */}
     </div>
   );
 }
