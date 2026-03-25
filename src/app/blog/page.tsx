@@ -8,69 +8,50 @@ const journalEntries = [
   {
     day: 'Day 1',
     paragraphs: [
-      'I set out to create the Fireboy AI. I had it running and thought to let an AI create the model. It recommended Stable Baselines3 based on the OpenAI Gymnasium framework using PPO.',
-      'The rewards it created were 50 for a gem, -0.1 for time, +0.1 for proximity to the nearest gem, +0.1 for proximity to the door, -100 for death, 50 for getting a gem, 250 for one of the characters getting to a door, and 500 for completion.',
-      'It got gems in under 50 episodes. Interestingly, there were times where it got either the red gem or the blue gem. In the meantime, I got worried that gem sensitivity might stray it in scenarios where the gem or door is right above it but it needs to route to the side to get there, which made me delete it.',
-      'I also had to add something in to make sure gems, hazards, buttons, barriers, levels, and player characters were detected.',
+      'I set out to create the Fireboy & Watergirl AI. Since it was a Flash game, I was able to find the game\'s .swf files and get it running through Ruffle. For the model, I used Stable-Baselines3 with PPO on top of the OpenAI Gymnasium framework.',
+      'I spent the rest of the day setting up the automation pipeline and the model itself. The initial rewards were based on gem proximity, gem collection, door proximity, and level completion, while the penalties were based on time spent and death.',
+      'It was able to collect gems in under 50 episodes. However, it only seemed to consistently collect the red gem and not the blue gem.',
     ],
   },
   {
     day: 'Day 2',
     paragraphs: [
-      'I let the AI run for a while overnight, but forgot to loop it so it stopped in the middle. It seemed like there were instances where it went for 20+ minutes. That made me think the gem reward was too low, so I made it higher and increased the time penalty.',
-      'That surprisingly made it worse or had no change, because it kept stalling and running to 60+ minutes after around 50 episodes. I decreased the gem reward to 15 and it did better, but had the same issue where it would stall in safe areas after becoming too afraid of the death penalty after around 75 episodes.',
-      'This made me add in an exploration feature where it would get rewards of 0.1 for visiting new x, y coordinates in a run. It seemed to work a bit better, but I thought it would be better if I could test out multiple theories at once.',
-      'While a reward for unexplored areas initially worked better, after more episodes the agents kept stalling. I thought that it would benefit from adding in more things such as a way to recognize buttons, hazards, barriers, and more. I added it in, noticed some unusual behavior, and also added a visual overlay and kept tweaking things until it was right.',
-      'I built a parallelized environment where I could test different runs with different variable settings. I also learned that changing the PPO learning period was an important variable I had to consider.',
+      'I let the AI run overnight, and there were several cases where it spent more than 20 minutes without going for any gems. That made me think the time penalty was too small and the gem reward was too weak. However, none of the reward tweaks seemed to work.',
+      'I decided I needed a way to test multiple models with different variables in parallel, so I built run_parallel_training.py. I also used AutoHotkey so multiple Ruffle windows could stay open and receive their own keyboard and mouse inputs without interfering with one another.',
+      'I also added an exploration feature that rewarded the AI for visiting new x-y coordinates during a run. It still did not work reliably.',
+      'I thought the model might benefit from recognizing more environmental features like buttons, hazards, and barriers, so I added support for those and spent time debugging the OpenCV pipeline and building a visual overlay to make sure the detections were correct.',
     ],
   },
   {
     day: 'Day 3',
     paragraphs: [
-      'I let the AI run overnight and it turned out that all of them only got the red gem and Water Girl was lagging behind. I decided that I needed to add in more different rewards and penalties.',
+      'I let the AI run overnight, and it turned out that all of the models only collected the red gem while Watergirl kept falling behind. I decided that I needed to add more targeted rewards and penalties. Here are some of the changes I made:',
     ],
     bullets: [
-      'Reinstate gem sensitivity but make it character dependent so Firebox is only attracted to red gems.',
-      'Reinstate door proximity reward.',
-      'Limit the death penalty.',
-      'Make the time sensitivity penalty become exponential after one minute.',
-      'If an AI sees a barrier and the door is on the other side, reward getting on the other side.',
-      'Have a lever or button proximity reward.',
-      'Have a proximity and actual reward for Water Girl getting in the water.',
-      'Add a death penalty specifically for when Water Girl is in the fire so the AI is better steered and understands why it died.',
+      'Made the time penalty become exponential after one minute',
+      'Added both a proximity reward and a direct reward for Watergirl entering water',
+      'Added alternating gem rewards so Watergirl would be rewarded much more strongly for moving toward her gem once Fireboy had already collected his',
     ],
     paragraphsAfterBullets: [
-      'It also made me wonder if the way I needed to make a generalizable AI was to perhaps have an overarching AI where there would be multiple agents running their own versions and the generalizable ones would have simple rewards and penalties while the mini ones would have complex ones. The overarching simple one could then take the data and choose the best model.',
-      'I also thought of a semi-imitation based idea where it would only use good data with the lowest time and highest gems and train on that. I also considered swapping PPO for MuZero.',
-      'None of them seemed to work. Firebox kept getting his gem but Water Girl was behind, which led me to make something where Firebox stopped moving and only Water Girl moved. Then I noticed a couple of weird actions like Water Girl jumping up and going back and forth.',
-      'I thought it somehow cheated the algorithm, so I created another visual overlay to live debug what rewards and penalties were being inflicted. It turns out Water Girl was not able to be tracked all the time and by jumping up and down and moving back and forth she would become null, which reset and rewarded the behavior.',
-      'I fixed this problem and decided to just run a simple parallelizable setup again in the night and see how it did the next day.',
+      'None of those changes seemed to solve the problem. Fireboy kept getting his gem, but Watergirl was still behind, which led me to create a setup where Fireboy stopped moving and only Watergirl moved. That was when I started noticing strange behaviors, like Watergirl repeatedly jumping in place and moving back and forth.',
+      'To better understand this I added a reward log to the visual overlay to debug exactly which rewards and penalties were being triggered in real time. It turned out that Watergirl was not being tracked consistently, and by jumping up and down or moving back and forth she could briefly become null, which caused the system to reset and accidentally reward that behavior.',
+      'I fixed that problem and decided to run another parallelized setup overnight to see how it performed the next day.',
     ],
   },
   {
     day: 'Day 4',
-    bullets: [
-      'Implemented scattershot to test out different things.',
-      'Implemented recursive.',
+    paragraphs: [
+      'It still did not work, so I tried a number of different approaches. One of them was scattershot tuning, where I would give a model a low and high range for a variable and run ten instances of it for 35 episodes each to see which settings performed best. Eventually, I realized that instead of manually running multiple scattershots, I could build a script called recursive_reward_search.py that automatically tweaked variables across multiple rounds and changed what it focused on each time in order to search for the best setup. However, neither of those approaches solved the core issue.',
+      'I ended up watching replays through replay_episode.py and realized that the movement itself was off. Whenever Watergirl attempted a diagonal jump, she would begin the jump but then fall straight down or drift the other way in the middle. This was happening because the model was sending inputs so quickly that it struggled to commit to a risky jump long enough to learn how to clear the fire hazard properly.',
+      'Because of that, I changed the diagonal jump logic so the input would be held for 1.5 seconds, and that was the breakthrough. Once it finally started working, I left a recursive search script running overnight to try to find the best-performing model.',
     ],
   },
   {
     day: 'Day 5',
-    bullets: [
-      'Use the dataset of one model plugged into another model. For instance, if they share the common reward of gem, you can have one AI have a reward for going right, another for going up, and then once right gets the gem it pairs with the going up one.',
-      'Make gem sensitivity so that if the closest gem does not change after 10 seconds it moves to the second closest.',
-      'Develop an imitation learning model.',
-      'Make it a visual model.',
-      'Learning is that if you are looking for new interactions, 35 episodes is enough.',
-      'Structure prod rewards as check-ins rather than a constant pull.',
-      'Create a parallel sizable thing for one model to learn fast.',
-    ],
-  },
-  {
-    day: 'Day 6',
     paragraphs: [
-      'Created archive of 2 gem, refined replay, and added a review script for the imitation learning model.',
-      'Ran for 1000 episodes but it did not work.',
+      'The recursive search finally started producing models that could collect both gems without stalling. That was a huge step forward. However, it still could not do so reliably.',
+      'At first, I thought the issue was simply that the models had not trained long enough, so I tried training different ones for anywhere from 100 to 1,000 episodes. None of them ever became consistently reliable.',
+      'That was the point where I realized I would probably need imitation learning to make the behavior stable. I created review_good_episodes.py so I could review successful episodes and select them to be used for training.',
     ],
   },
 ];
@@ -141,8 +122,8 @@ export default function BlogPage() {
             <h1 className="max-w-4xl text-5xl font-black uppercase italic leading-[0.88] tracking-tighter md:text-7xl">
               Fireboy and Watergirl AI
             </h1>
-            <p className="mt-6 max-w-2xl text-base font-medium leading-8 text-black/60 md:text-lg">
-              Notes from building a cooperative reinforcement-learning agent: reward shaping, debugging overlays, overnight runs, imitation-learning ideas, and the kinds of failures that actually taught me what mattered.
+            <p className="mt-6 max-w-3xl text-base font-medium leading-8 text-black/60 md:text-lg">
+              Watch the video to see where the AI is currently at and/or read the build log to see my progress. Note: The visual overlay and reward log are off in the video due to it being a demonstration of a replay rather than a live run.
             </p>
           </div>
 
@@ -161,6 +142,28 @@ export default function BlogPage() {
                 <p className="mt-2 text-sm font-medium leading-7 text-black/65">
                   Multi-character cooperation, reward design, environment instrumentation, and parallel experimentation.
                 </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-20">
+          <div className="mb-12 flex flex-col items-center text-center">
+            <h2 className="mb-4 text-4xl font-black uppercase italic tracking-tighter md:text-5xl">Video Demonstration</h2>
+            <div className="h-px w-12 bg-black/20" />
+          </div>
+
+          <div className="mx-auto max-w-5xl">
+            <div className="overflow-hidden rounded-[2rem] border border-black/5 bg-[#f4f4f2]/80 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.08)] backdrop-blur-md md:p-4">
+              <div className="aspect-video overflow-hidden rounded-[1.5rem] bg-black">
+                <iframe
+                  className="h-full w-full"
+                  src="https://www.youtube.com/embed/IgyvnI8UbjY"
+                  title="Fireboy and Watergirl AI video demonstration"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allowFullScreen
+                />
               </div>
             </div>
           </div>
@@ -189,28 +192,38 @@ export default function BlogPage() {
                   </div>
 
                   <div className="rounded-[1.75rem] border border-black/5 bg-[#f4f4f2]/65 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.06)] backdrop-blur-md md:p-8">
-                    {entry.paragraphs?.map((paragraph) => (
-                      <p key={paragraph} className="text-sm font-medium leading-7 text-black/68 md:text-base">
-                        {paragraph}
-                      </p>
-                    ))}
+                    <div className="space-y-5">
+                      {entry.paragraphs && (
+                        <div className="space-y-4">
+                          {entry.paragraphs.map((paragraph) => (
+                            <p key={paragraph} className="text-sm font-medium leading-7 text-black/68 md:text-base md:leading-8">
+                              {paragraph}
+                            </p>
+                          ))}
+                        </div>
+                      )}
 
-                    {entry.bullets && (
-                      <ul className="space-y-3">
-                        {entry.bullets.map((bullet) => (
-                          <li key={bullet} className="flex items-start gap-3 text-sm font-medium leading-7 text-black/68 md:text-base">
-                            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-black" />
-                            <span>{bullet}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                      {entry.bullets && (
+                        <ul className="space-y-3">
+                          {entry.bullets.map((bullet) => (
+                            <li key={bullet} className="flex items-start gap-3 text-sm font-medium leading-7 text-black/68 md:text-base md:leading-8">
+                              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-black" />
+                              <span>{bullet}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
 
-                    {entry.paragraphsAfterBullets?.map((paragraph) => (
-                      <p key={paragraph} className="text-sm font-medium leading-7 text-black/68 md:text-base">
-                        {paragraph}
-                      </p>
-                    ))}
+                      {entry.paragraphsAfterBullets && (
+                        <div className="space-y-4">
+                          {entry.paragraphsAfterBullets.map((paragraph) => (
+                            <p key={paragraph} className="text-sm font-medium leading-7 text-black/68 md:text-base md:leading-8">
+                              {paragraph}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </article>

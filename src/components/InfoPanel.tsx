@@ -1,6 +1,7 @@
 'use client';
 
 import { X, ExternalLink, Calendar } from 'lucide-react';
+import Link from 'next/link';
 import { resumeData } from '../data/resume';
 import { cn } from '../lib/utils';
 import { useEffect, useState } from 'react';
@@ -174,6 +175,16 @@ export default function InfoPanel({ selectedId, previewId, onClose }: InfoPanelP
             Visit Website
             <ExternalLink className="w-4 h-4 ml-1.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </a>
+        )}
+
+        {item?.id === 'fireboy-watergirl' && (
+          <Link
+            href="/blog"
+            className="inline-flex items-center w-full md:w-auto justify-center md:justify-start px-6 py-3 bg-[#0c0c0c] border border-[#d0d0cc] rounded-xl text-sm font-semibold text-[#fffffe] hover:bg-[#2e2e2c] transition-all shadow-[0_4px_12px_rgba(0,0,0,0.1)] group"
+          >
+            Visit Website
+            <ExternalLink className="w-4 h-4 ml-1.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          </Link>
         )}
       </div>
     </div>
