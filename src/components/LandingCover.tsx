@@ -493,24 +493,6 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
                   ))}
                 </div>
 
-                <div className="md:hidden flex w-full justify-center">
-                  <ScrollLink
-                    to="about"
-                    containerId="landing-container"
-                    smooth={true}
-                    duration={900}
-                    offset={-100}
-                    className="group inline-flex flex-col items-center gap-2 px-5 py-3 text-center text-black/40 transition-colors hover:text-black cursor-pointer"
-                  >
-                    <div className="flex flex-col items-center leading-none">
-                      <ChevronsDown className="w-4 h-4 animate-bounce" />
-                      <ChevronsDown className="w-4 h-4 -mt-1 animate-bounce opacity-55 [animation-delay:150ms]" />
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <span className="text-[10px] font-bold tracking-[0.24em] uppercase">Scroll For More</span>
-                    </div>
-                  </ScrollLink>
-                </div>
               </div>
             </motion.div>
 
@@ -538,6 +520,25 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
                 </div>
               </motion.div>
             </motion.div>
+          </div>
+
+          <div className="relative z-10 md:hidden flex justify-center pb-10">
+            <ScrollLink
+              to="about"
+              containerId="landing-container"
+              smooth={true}
+              duration={900}
+              offset={-100}
+              className="group inline-flex flex-col items-center gap-2 px-5 py-3 text-center text-black/40 transition-colors hover:text-black cursor-pointer"
+            >
+              <div className="flex flex-col items-center leading-none">
+                <ChevronsDown className="w-4 h-4 animate-bounce" />
+                <ChevronsDown className="w-4 h-4 -mt-1 animate-bounce opacity-55 [animation-delay:150ms]" />
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="text-[10px] font-bold tracking-[0.24em] uppercase">Scroll For More</span>
+              </div>
+            </ScrollLink>
           </div>
 
           <div className="pointer-events-none absolute inset-x-0 bottom-10 md:bottom-12 z-20 hidden md:flex justify-center">
