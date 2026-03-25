@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import gsap from 'gsap';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RotateCcw } from 'lucide-react';
-import { resumeData, ResumeItem, cameraConfig } from '../data/resume';
+import { resumeData, ResumeItem, cameraConfig, signpostConfig } from '../data/resume';
 
 interface InteractiveDeskProps {
   selectedId: string | null;
@@ -58,12 +58,7 @@ export default function InteractiveDesk({
   }, [showCover]);
 
   useEffect(() => {
-    if (selectedItem) {
-      const pos = selectedItem.position;
-      targetRef.current = new THREE.Vector3(...pos);
-    } else {
-      targetRef.current = null;
-    }
+    targetRef.current = null;
     selectedRef.current = selectedId;
   }, [selectedItem, selectedId]);
 
@@ -387,7 +382,7 @@ export default function InteractiveDesk({
             if (type === 'text') {
               const sizeMatch = font.match(/(\d+)px/);
               const baseFontSize = sizeMatch ? parseInt(sizeMatch[1], 10) : 72;
-              const maxTextWidth = canvas.width * 0.88;
+              const maxTextWidth = canvas.width * 0.92;
               let fittedFont = font;
               let fittedSize = baseFontSize;
 
@@ -419,7 +414,7 @@ export default function InteractiveDesk({
           }
 
           const texture = new THREE.CanvasTexture(canvas);
-          const labelWidth = type === 'text' ? 1.4 : width * 0.85;
+          const labelWidth = type === 'text' ? 1.44 : width * 0.85;
           const labelHeight = 0.35; // Match createBoard
           const label = new THREE.Mesh(new THREE.PlaneGeometry(labelWidth, labelHeight), new THREE.MeshBasicMaterial({ map: texture, transparent: true }));
           label.position.set(0, 0, 0.051);
@@ -443,20 +438,22 @@ export default function InteractiveDesk({
           contactGroup.add(line);
         };
 
-        createSegment('text', 'CONTACT ME', -(totalWidth / 2) + hWidth / 2, hWidth, 'ui-contact-header', '900 71px Inter, sans-serif');
+        createSegment('text', 'CONTACT ME', -(totalWidth / 2) + hWidth / 2, hWidth, 'ui-contact-header', '900 76px Inter, sans-serif');
         createLine(-(totalWidth / 2) + hWidth);
         createSegment('linkedin', '', -(totalWidth / 2) + hWidth + sWidth / 2, sWidth, 'ui-linkedin');
         createLine(-(totalWidth / 2) + hWidth + sWidth);
         createSegment('email', '', -(totalWidth / 2) + hWidth + sWidth + sWidth / 2, sWidth, 'ui-email');
 
         signpostGroup.add(contactGroup);
+        contactGroup.rotation.y = 0.25;
 
         // Standardized Opaque Black Boards with perfect 0.7m spacing
         createBoard("ABOUT ME", "ui-about", 2.3, -0.35, "900 72px Inter, sans-serif");
         createBoard("RESUME PDF", "ui-resume", 1.6, 0.25, "900 72px Inter, sans-serif");
         createBoard("GO BACK", "ui-back", 0.2, -0.15, "900 72px Inter, sans-serif");
 
-        signpostGroup.position.set(3.5, -1, 1.5); // Moved to the right side in front of desk
+        signpostGroup.position.set(...signpostConfig.position);
+        signpostGroup.rotation.y = THREE.MathUtils.degToRad(signpostConfig.rotationY);
         scene.add(signpostGroup);
       };
 
@@ -486,6 +483,20 @@ export default function InteractiveDesk({
         const activePC = targets.pc;
         activePC.castShadow = true;
         activePC.receiveShadow = true;
+        if (activePC.material) {
+          activePC.material = Array.isArray(activePC.material)
+            ? activePC.material.map((material) => material.clone())
+            : activePC.material.clone();
+
+          const pcMaterials = Array.isArray(activePC.material) ? activePC.material : [activePC.material];
+          pcMaterials.forEach((material) => {
+            if ('transparent' in material) material.transparent = false;
+            if ('opacity' in material) material.opacity = 1;
+            if ('alphaTest' in material) material.alphaTest = 0;
+            if ('depthWrite' in material) material.depthWrite = true;
+            material.needsUpdate = true;
+          });
+        }
 
         activePC.updateMatrixWorld(true);
         const box = new THREE.Box3().setFromObject(activePC);
@@ -497,19 +508,15 @@ export default function InteractiveDesk({
         pcHoverGroup.name = 'pcHoverGroup';
 
         desk.add(pcPivot);
-        const localCenter = desk.worldToLocal(worldCenter.clone());
-        pcPivot.position.copy(localCenter);
+        const configuredPcPosition = new THREE.Vector3(...sffItem.position);
+        pcPivot.position.copy(configuredPcPosition);
         pcPivot.add(pcHoverGroup);
 
         pcHoverGroup.attach(activePC);
         activePC.updateMatrixWorld(true);
 
-        const centeredBox = new THREE.Box3().setFromObject(activePC);
-        const centeredWorld = centeredBox.getCenter(new THREE.Vector3());
-        const centeredLocal = pcHoverGroup.worldToLocal(centeredWorld.clone());
-        const centeredSize = centeredBox.getSize(new THREE.Vector3());
-        activePC.position.sub(centeredLocal);
-        pcHoverGroup.userData.hoverLiftPerScale = centeredSize.y / 2;
+        pcHoverGroup.scale.set(sffItem.scale, sffItem.scale, sffItem.scale);
+        pcHoverGroup.userData.hoverLiftPerScale = 0;
         activePC.userData = { id: 'arbitrage-app' };
 
         meshes.push({ obj: pcHoverGroup, item: sffItem, baseY: pcPivot.position.y, isModel: true });
@@ -543,6 +550,7 @@ export default function InteractiveDesk({
 
         monitorPivot.attach(monitor);
         monitorPivot.attach(screen);
+        monitorPivot.scale.set(delphiItem.scale, delphiItem.scale, delphiItem.scale);
 
         monitor.userData = { id: 'delphi' };
         screen.userData = { id: 'delphi' };
@@ -744,14 +752,47 @@ export default function InteractiveDesk({
             });
           }
 
+          // The diploma_frame.glb has an inherent tilt baked into its child nodes.
+          // Zero out all direct children's rotations so the top-level rotation
+          // from resume.ts is the sole source of truth for orientation.
+          if (item.id === 'osu') {
+            model.children.forEach((child: THREE.Object3D) => {
+              child.rotation.set(0, 0, 0);
+            });
+          }
+
           const light = new THREE.PointLight(new THREE.Color(item.color), 0, 3);
           light.position.set(0, 1, 0);
           light.name = 'hoverLight';
-          model.add(light);
 
-          model.userData = { id: item.id, color: item.color };
-          scene.add(model);
-          meshes.push({ obj: model, item, baseY: model.position.y, isModel: true });
+          if (item.id === 'columbus-capital') {
+            model.updateMatrixWorld(true);
+            const hoverBox = new THREE.Box3().setFromObject(model);
+            const hoverCenter = hoverBox.getCenter(new THREE.Vector3());
+            const hoverBottomCenter = new THREE.Vector3(
+              hoverCenter.x,
+              hoverBox.min.y,
+              hoverCenter.z
+            );
+
+            const hoverPivot = new THREE.Group();
+            hoverPivot.position.copy(hoverBottomCenter);
+            scene.add(hoverPivot);
+            hoverPivot.attach(model);
+
+            model.updateMatrixWorld(true);
+            const localBottomCenter = hoverPivot.worldToLocal(hoverBottomCenter.clone());
+            model.position.sub(localBottomCenter);
+
+            model.userData = { ...model.userData, id: item.id, color: item.color };
+            hoverPivot.add(light);
+            meshes.push({ obj: hoverPivot, item, baseY: hoverPivot.position.y, isModel: true });
+          } else {
+            model.userData = { ...model.userData, id: item.id, color: item.color };
+            model.add(light);
+            scene.add(model);
+            meshes.push({ obj: model, item, baseY: model.position.y, isModel: true });
+          }
         });
       } else {
         const customObj = createCustomShape(item.shape, item.color);
@@ -988,37 +1029,20 @@ export default function InteractiveDesk({
       mixers.current.forEach(m => m.update(delta));
 
       meshes.forEach(({ obj, item, isModel }) => {
-        const isHovered = hoveredRef.current === item.id || currentHover === item.id;
-        const isSelectedLocal = selectedRef.current === item.id;
-
         if (isModel) {
           const light = obj.getObjectByName('hoverLight') as THREE.PointLight;
-          if (light) {
-            if (isSelectedLocal && item.glowEnabled) light.intensity = 50;
-            else light.intensity = 0;
-          }
+          if (light) light.intensity = 0;
         } else {
           obj.traverse((child) => {
             if (child instanceof THREE.Mesh) {
               const mat = child.material as THREE.MeshStandardMaterial;
-              if (item.shape === 'monitor' || item.shape === 'computer') {
-                mat.emissiveIntensity = (isSelectedLocal && item.glowEnabled) ? 2 : 0;
-                mat.opacity = (isSelectedLocal && item.glowEnabled) ? 0.5 : 0;
-              } else {
-                if (isSelectedLocal && item.glowEnabled) {
-                  mat.emissiveIntensity = 2;
-                  mat.color.setHex(0xffffff);
-                } else {
-                  mat.emissiveIntensity = 0.1;
-                  mat.color.setHex(0x222222);
-                }
-              }
+              if ('emissiveIntensity' in mat) mat.emissiveIntensity = 0;
+              if ('opacity' in mat) mat.opacity = 1;
             }
           });
         }
       });
 
-      const target = targetRef.current;
       const zoom = zoomRef.current;
       const { yaw, pitch } = rotationRef.current;
 
@@ -1030,19 +1054,9 @@ export default function InteractiveDesk({
 
       const lerpFactor = 0.05;
 
-      if (target) {
-        // Find current item using ref to ensure we have latest data
-        const currentItem = resumeData.find(i => i.id === selectedRef.current);
-        const dist = currentItem?.zoomDistance ?? 4;
-        const targetPos = currentItem?.zoomTarget || [target.x, target.y + 1, target.z + dist];
-        const desiredPos = new THREE.Vector3(...targetPos);
-        camera.position.lerp(desiredPos, lerpFactor);
-        cameraTarget.lerp(target, lerpFactor);
-      } else {
-        // Orbital view
-        camera.position.lerp(new THREE.Vector3(camX, 1 * zoom + camY, camZ + 2), lerpFactor);
-        cameraTarget.lerp(new THREE.Vector3(0, 0, 2), lerpFactor);
-      }
+      // Always stay in the orbital overview; selection should not reroute the camera.
+      camera.position.lerp(new THREE.Vector3(camX, 1 * zoom + camY, camZ + 2), lerpFactor);
+      cameraTarget.lerp(new THREE.Vector3(0, 0, 2), lerpFactor);
 
       camera.lookAt(cameraTarget);
       renderFrame();

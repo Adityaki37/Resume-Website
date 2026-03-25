@@ -60,6 +60,16 @@ export const cameraConfig: CameraConfig = {
 };
 
 // =============================================================
+// SIGNPOST CONFIG: Controls the position and Y-rotation of the
+// board stand (GO BACK / RESUME PDF / ABOUT ME / CONTACT ME).
+// Position is world-space [x, y, z]; rotation is degrees on Y axis.
+// =============================================================
+export const signpostConfig = {
+  position: [-2.5, 0, -2] as [number, number, number],
+  rotationY: 90, // degrees
+};
+
+// =============================================================
 // SCI-FI ROOM WORLD-SPACE REFERENCE:
 //   Desk Pivot: [0, -1, 3.0]
 //   Bed Surface: Y ≈ 0.4, Z ≈ -4.4
@@ -83,11 +93,11 @@ export const resumeData: ResumeItem[] = [
     ],
     interestBullets: ['Achieving academic excellence and pursuing cross-disciplinary innovation at OSU.'],
     modelUrl: '/models/diploma_frame.glb',
-    scale: 1.5,
-    hoverScale: 1.4,
+    scale: 1.4,
+    hoverScale: 1.2,
     glowEnabled: true,
     rotation: [0, 90, 0],
-    position: [-3, 1.35, -4.25],
+    position: [-3.3, 2, -4.725],
     shape: 'certificate',
     color: '#00ffff',
     clickable: true,
@@ -144,14 +154,14 @@ export const resumeData: ResumeItem[] = [
     hoverScale: 1.4,
     glowEnabled: true,
     rotation: [0, 0, 0],
-    position: [-3.75, 0.9, -1],
+    position: [-3.75, 2.77, -0.12],
     shape: 'bull',
     color: '#ffaa00',
     clickable: true,
     zoomTarget: [-2, 2.5, 2], // View from the side/front of the table
     zoomDistance: 4,
     previewConfig: {
-      rotation: [45, 45, 0],
+      rotation: [0, 0, 0],
       rotationSpeed: 0.01,
       autoRotate: true
     }
@@ -171,11 +181,11 @@ export const resumeData: ResumeItem[] = [
     ],
     interestBullets: ['Deeply interested in strategic chess gameplay and tactical analysis.'],
     modelUrl: '/models/chessboard.glb',
-    scale: 0.75,
+    scale: 0.5,
     hoverScale: 1.4,
     glowEnabled: true,
     rotation: [0, 0, 0],
-    position: [0, -1, 1.5],
+    position: [1.5, 1.2, 2.7],
     shape: 'chessboard',
     color: '#d0d0cc',
     clickable: true,
@@ -200,7 +210,7 @@ export const resumeData: ResumeItem[] = [
     hoverScale: 1.4,
     glowEnabled: true,
     rotation: [0, 0, 0],
-    position: [0.8, 0.25, -4.4],
+    position: [0.8, 0.23, -4.4],
     shape: 'racket',
     color: '#d0d0cc',
     clickable: true,
@@ -230,13 +240,42 @@ export const resumeData: ResumeItem[] = [
     hoverScale: 1.4,
     glowEnabled: true,
     rotation: [0, 0, 0],
-    position: [-0.6, 0.4, -4.4],
+    position: [-0.6, 0.42, -4.4],
     shape: 'vr',
     color: '#2e2e2c',
     clickable: true,
     zoomDistance: 2.5,
     previewConfig: {
       rotation: [0, 180, 0],
+      rotationSpeed: 0.005,
+      autoRotate: true
+    }
+  },
+
+  {
+    id: 'tech-reviews',
+    title: 'Tech Reviews',
+    interestTitle: 'Consumer Tech',
+    category: 'Interests',
+    subtitle: 'Hands-On Product Analysis',
+    date: 'Ongoing',
+    bullets: [
+      'Reviewing smartphones and consumer devices with a focus on hardware feel, software usability, and overall user experience.',
+      'Comparing design decisions, feature tradeoffs, and product positioning across different consumer tech categories.'
+    ],
+    interestBullets: ['Interested in evaluating how product design, usability, and performance come together in modern consumer tech.'],
+    modelUrl: '/models/smartphone.glb',
+    scale: 0.55,
+    hoverScale: 1.35,
+    glowEnabled: true,
+    rotation: [270, 0, 0],
+    position: [1.55, 0.24, -4.15],
+    shape: 'smartphone',
+    color: '#d0d0cc',
+    clickable: true,
+    zoomDistance: 2.8,
+    previewConfig: {
+      rotation: [0, 25, 0],
       rotationSpeed: 0.005,
       autoRotate: true
     }
@@ -256,7 +295,7 @@ export const resumeData: ResumeItem[] = [
       'Designed and developed an alpha version of the website using various front and back-end systems as well as APIs'
     ],
     interestBullets: ['Passionate about exploring game mechanics, level design, and immersive storytelling.'],
-    scale: 0.6, // Used as monitorPivot scale
+    scale: 0.7, // Used as monitorPivot scale
     hoverScale: 1.4,
     glowEnabled: true,
     rotation: [0, 0, 0],
@@ -266,7 +305,7 @@ export const resumeData: ResumeItem[] = [
     clickable: true,
     zoomDistance: 3.5,
     previewConfig: {
-      rotation: [0, 45, 0],
+      rotation: [-90, 0, 0],
       rotationSpeed: 0.005,
       autoRotate: true
     }
@@ -287,13 +326,13 @@ export const resumeData: ResumeItem[] = [
     hoverScale: 1.4,
     glowEnabled: true,
     rotation: [0, 0, 0],
-    position: [-4, 2.5, -1.5],
+    position: [-8.2, 0.6, -5.2],
     shape: 'computer',
     color: '#d0d0cc',
     clickable: true,
     zoomDistance: 4,
     previewConfig: {
-      rotation: [0, -45, 0],
+      rotation: [0, 0, 0],
       rotationSpeed: 0.005,
       autoRotate: true
     }

@@ -22,8 +22,10 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
 
     // Scene setup
     const scene = new THREE.Scene();
-    const group = new THREE.Group();
-    scene.add(group);
+    const spinGroup = new THREE.Group();
+    const displayGroup = new THREE.Group();
+    spinGroup.add(displayGroup);
+    scene.add(spinGroup);
 
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
     camera.position.z = 5;
@@ -54,27 +56,39 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
     frontLight.position.set(0, 0, 10);
     scene.add(frontLight);
 
-    const fitToView = (model: THREE.Object3D) => {
-      model.updateMatrixWorld(true);
-      const box = new THREE.Box3().setFromObject(model);
+    const fitToView = (target: THREE.Object3D) => {
+      target.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(target);
       const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
 
       const maxDim = Math.max(size.x, size.y, size.z);
       if (maxDim > 0) {
         const s = 3 / maxDim;
-        model.scale.set(s, s, s);
-        model.updateMatrixWorld(true);
-        const newBox = new THREE.Box3().setFromObject(model);
+        target.scale.set(s, s, s);
+        target.updateMatrixWorld(true);
+        const newBox = new THREE.Box3().setFromObject(target);
         const newCenter = newBox.getCenter(new THREE.Vector3());
-        model.position.x = -newCenter.x;
-        model.position.y = -newCenter.y;
-        model.position.z = -newCenter.z;
+        target.position.x = -newCenter.x;
+        target.position.y = -newCenter.y;
+        target.position.z = -newCenter.z;
       }
     };
 
     const loader = new GLTFLoader();
     const shape = item.shape;
+
+    const applyPreviewRotation = (target: THREE.Object3D) => {
+      if (item.previewConfig?.rotation) {
+        target.rotation.set(
+          THREE.MathUtils.degToRad(item.previewConfig.rotation[0]),
+          THREE.MathUtils.degToRad(item.previewConfig.rotation[1]),
+          THREE.MathUtils.degToRad(item.previewConfig.rotation[2])
+        );
+      } else {
+        target.rotation.set(0, 0, 0);
+      }
+    };
 
     const finalizeModel = (model: THREE.Object3D) => {
       model.traverse((child) => {
@@ -94,8 +108,10 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
           }
         }
       });
-      group.add(model);
-      fitToView(model);
+      displayGroup.clear();
+      displayGroup.add(model);
+      applyPreviewRotation(displayGroup);
+      fitToView(displayGroup);
     };
 
     if (item.modelUrl) {
@@ -110,15 +126,16 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
             }
           });
         }
-        if (item.previewConfig?.rotation) {
-          model.rotation.set(
-            THREE.MathUtils.degToRad(item.previewConfig.rotation[0]),
-            THREE.MathUtils.degToRad(item.previewConfig.rotation[1]),
-            THREE.MathUtils.degToRad(item.previewConfig.rotation[2])
-          );
+        // The diploma_frame.glb has an inherent tilt baked into its child nodes.
+        // Zero them out so the previewConfig rotation is the sole source of truth.
+        if (itemId === 'osu') {
+          model.children.forEach((child: THREE.Object3D) => {
+            child.rotation.set(0, 0, 0);
+          });
         }
         finalizeModel(model);
       });
+
     } else if (shape === 'coins') {
       const coinGroup = new THREE.Group();
       const createMat = () => new THREE.MeshStandardMaterial({ color: '#d0d0cc', metalness: 0.9, roughness: 0.1, emissive: '#fffffe', emissiveIntensity: 0.1 });
@@ -132,29 +149,49 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
       loader.load('/cyberpunk_desk.glb', (gltf) => {
         const desk = gltf.scene;
         const previewGroup = new THREE.Group();
+        desk.updateMatrixWorld(true);
+
+        const addCloneWithWorldTransform = (source: THREE.Mesh, customize?: (clone: THREE.Mesh) => void) => {
+          const clone = source.clone();
+          if (clone.material) {
+            clone.material = Array.isArray(clone.material)
+              ? clone.material.map((material) => material.clone())
+              : clone.material.clone();
+
+            const cloneMaterials = Array.isArray(clone.material) ? clone.material : [clone.material];
+            cloneMaterials.forEach((material) => {
+              if ('transparent' in material) material.transparent = false;
+              if ('opacity' in material) material.opacity = 1;
+              if ('alphaTest' in material) material.alphaTest = 0;
+              if ('depthWrite' in material) material.depthWrite = true;
+              material.needsUpdate = true;
+            });
+          }
+          clone.position.copy(source.getWorldPosition(new THREE.Vector3()));
+          clone.quaternion.copy(source.getWorldQuaternion(new THREE.Quaternion()));
+          clone.scale.copy(source.getWorldScale(new THREE.Vector3()));
+          customize?.(clone);
+          previewGroup.add(clone);
+        };
+
         desk.traverse((child: any) => {
           if (child.isMesh) {
             if (itemId === 'delphi' && (child.name === 'Object_5' || child.name === 'Object_6')) {
-              const clone = child.clone();
-              if (child.name === 'Object_5' && (clone.material as any).emissive) {
-                (clone.material as any).emissive.set(color);
-                (clone.material as any).emissiveIntensity = item.glowEnabled ? 2 : 0;
-              }
-              previewGroup.add(clone);
+              addCloneWithWorldTransform(child, (clone) => {
+                if (child.name === 'Object_5' && (clone.material as any).emissive) {
+                  (clone.material as any).emissive.set(color);
+                  (clone.material as any).emissiveIntensity = item.glowEnabled ? 2 : 0;
+                }
+              });
             }
-            if (itemId === 'arbitrage-app' && child.name === 'Object_8') previewGroup.add(child.clone());
+            if (itemId === 'arbitrage-app' && child.name === 'Object_8') {
+              addCloneWithWorldTransform(child);
+            }
           }
         });
         const previewBox = new THREE.Box3().setFromObject(previewGroup);
         const previewCenter = previewBox.getCenter(new THREE.Vector3());
         previewGroup.children.forEach(child => child.position.sub(previewCenter));
-        if (item.previewConfig?.rotation) {
-          previewGroup.rotation.set(
-            THREE.MathUtils.degToRad(item.previewConfig.rotation[0]),
-            THREE.MathUtils.degToRad(item.previewConfig.rotation[1]),
-            THREE.MathUtils.degToRad(item.previewConfig.rotation[2])
-          );
-        } else previewGroup.rotation.set(Math.PI / 2, Math.PI, Math.PI);
         finalizeModel(previewGroup);
       });
     } else {
@@ -194,12 +231,12 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
     resizeObserver.observe(mountNode);
 
     let animationFrameId: number;
-    const animate = () => {
-      animationFrameId = requestAnimationFrame(animate);
+      const animate = () => {
+        animationFrameId = requestAnimationFrame(animate);
       const speed = item.previewConfig?.rotationSpeed ?? 0.005;
-      if (item.previewConfig?.autoRotate !== false) group.rotation.y += speed;
-      renderer.render(scene, camera);
-    };
+      if (item.previewConfig?.autoRotate !== false) spinGroup.rotation.y += speed;
+        renderer.render(scene, camera);
+      };
     animate();
 
     return () => {
