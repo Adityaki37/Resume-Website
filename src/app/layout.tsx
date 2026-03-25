@@ -17,11 +17,6 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "Aditya Induri | Interactive Resume",
   description: "Software Engineer based in Ohio - crafting digital prototypes and immersive interfaces.",
-  icons: {
-    icon: "/favicon.png?v=2",
-    shortcut: "/favicon.png?v=2",
-    apple: "/favicon.png?v=2",
-  },
 };
 
 export default function RootLayout({
