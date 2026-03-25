@@ -15,6 +15,7 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const item = resumeData.find(i => i.id === itemId);
   const isInvolvementsPreview = itemId === 'involvements';
+  const MAX_PREVIEW_PIXEL_RATIO = 1.5;
 
   useEffect(() => {
     if (!mountRef.current || ((!item || item.imageUrl) && !isInvolvementsPreview)) return;
@@ -32,7 +33,7 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
     camera.position.z = 5;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PREVIEW_PIXEL_RATIO));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.8;

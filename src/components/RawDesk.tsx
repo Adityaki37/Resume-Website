@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -10,7 +10,6 @@ import { resumeData, ResumeItem, cameraConfig, signpostConfig } from '../data/re
 interface InteractiveDeskProps {
   selectedId: string | null;
   onSelect: (id: string | null, previewId?: string | null) => void;
-  hoveredId: string | null;
   onHover: (id: string | null) => void;
   onBack?: () => void;
   onResume?: () => void;
@@ -22,11 +21,12 @@ interface InteractiveDeskProps {
 // modelMap removed - using centralized resumeData config
 
 export default function InteractiveDesk({
-  selectedId, onSelect, hoveredId, onHover, onBack, onResume,
+  selectedId, onSelect, onHover, onBack, onResume,
   onLoadProgress, onLoadComplete, showCover
 }: InteractiveDeskProps) {
+  const ACTIVE_PIXEL_RATIO_CAP = 1.5;
+  const COVER_PIXEL_RATIO_CAP = 1.0;
   const mountRef = useRef<HTMLDivElement>(null);
-  const selectedItem = useMemo(() => resumeData.find(i => i.id === selectedId), [selectedId]);
   const showCoverRef = useRef(Boolean(showCover));
   const sceneLoadedRef = useRef(false);
   const needsWarmupRef = useRef(false);
@@ -35,11 +35,11 @@ export default function InteractiveDesk({
   const renderFrameRef = useRef<(() => void) | null>(null);
   const startAnimationRef = useRef<(() => void) | null>(null);
   const startBackgroundAnimationRef = useRef<(() => void) | null>(null);
+  const applyRendererQualityRef = useRef<(() => void) | null>(null);
 
   // Refs to hold mutable state for the animation loop without triggering scene rebuilds
   const targetRef = useRef<THREE.Vector3 | null>(null);
   const selectedRef = useRef<string | null>(selectedId);
-  const hoveredRef = useRef<string | null>(hoveredId);
   const mixers = useRef<THREE.AnimationMixer[]>([]);
   const zoomRef = useRef<number>(1.0);
   const isGrabbingRef = useRef(false);
@@ -49,6 +49,7 @@ export default function InteractiveDesk({
 
   useEffect(() => {
     showCoverRef.current = Boolean(showCover);
+    applyRendererQualityRef.current?.();
     if (showCover) {
       startBackgroundAnimationRef.current?.();
     } else {
@@ -60,11 +61,7 @@ export default function InteractiveDesk({
   useEffect(() => {
     targetRef.current = null;
     selectedRef.current = selectedId;
-  }, [selectedItem, selectedId]);
-
-  useEffect(() => {
-    hoveredRef.current = hoveredId;
-  }, [hoveredId]);
+  }, [selectedId]);
 
   // Handle Cinematic Entry Pan
   useEffect(() => {
@@ -78,10 +75,6 @@ export default function InteractiveDesk({
   }, [showCover]);
 
   useEffect(() => {
-    hoveredRef.current = hoveredId;
-  }, [hoveredId]);
-
-  useEffect(() => {
     THREE.Cache.enabled = true;
   }, []);
 
@@ -91,7 +84,9 @@ export default function InteractiveDesk({
 
     // 0. State for Cyberpunk interaction
     const meshes: { obj: THREE.Object3D, item: ResumeItem, baseY: number, isModel: boolean }[] = [];
-    (window as any).debugMeshes = meshes;
+    if (process.env.NODE_ENV !== 'production') {
+      (window as any).debugMeshes = meshes;
+    }
 
     const geos: Record<string, THREE.BufferGeometry> = {
       box: new THREE.BoxGeometry(1.2, 1.2, 1.2),
@@ -111,15 +106,15 @@ export default function InteractiveDesk({
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
 
     // Dynamic FOV based on aspect ratio
-    const updateFOV = () => {
-      if (width < height) { // Mobile Portrait
+    const updateFOV = (viewportWidth: number, viewportHeight: number) => {
+      if (viewportWidth < viewportHeight) { // Mobile Portrait
         camera.fov = 65;
       } else {
         camera.fov = 45;
       }
       camera.updateProjectionMatrix();
     };
-    updateFOV();
+    updateFOV(width, height);
 
     camera.position.set(0, 4, 7); // Brought camera closer to avoid clipping interior walls
     camera.lookAt(0, 0, 0);
@@ -128,17 +123,24 @@ export default function InteractiveDesk({
       antialias: true,
       logarithmicDepthBuffer: true
     });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(width, height);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping; // Better cinematic look
     renderer.toneMappingExposure = 1.2; // Restored to previous brightness
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Softer, cleaner shadows
+    const applyRendererQuality = () => {
+      const pixelRatioCap = showCoverRef.current ? COVER_PIXEL_RATIO_CAP : ACTIVE_PIXEL_RATIO_CAP;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, pixelRatioCap));
+    };
+    applyRendererQuality();
+    applyRendererQualityRef.current = applyRendererQuality;
+    renderer.setSize(width, height);
     mountNode.appendChild(renderer.domElement);
 
     // Expose scene for debugging
-    (window as any).scene = scene;
+    if (process.env.NODE_ENV !== 'production') {
+      (window as any).scene = scene;
+    }
 
     // 2. Lighting - Simplified for Sci-Fi
     const intensityMultiplier = 0.25;
@@ -825,6 +827,10 @@ export default function InteractiveDesk({
     const mouse = new THREE.Vector2();
     let currentHover: string | null = null;
     const cameraTarget = new THREE.Vector3(0, 0, 0);
+    const desiredCameraPosition = new THREE.Vector3();
+    const desiredCameraTarget = new THREE.Vector3(0, 0, 2);
+    let pendingPointerPosition: { clientX: number; clientY: number } | null = null;
+    let hoverFrameId: number | null = null;
 
     const playHoverAnimation = (id: string | null, isHovering: boolean) => {
       const targetMesh = meshes.find(m => m.item.id === id);
@@ -873,10 +879,10 @@ export default function InteractiveDesk({
       }
     };
 
-    const checkIntersections = (event: MouseEvent) => {
+    const checkIntersections = (clientX: number, clientY: number) => {
       const rect = renderer.domElement.getBoundingClientRect();
-      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
 
       raycaster.setFromCamera(mouse, camera);
       const intersects = raycaster.intersectObjects(meshes.map(m => m.obj), true);
@@ -902,6 +908,19 @@ export default function InteractiveDesk({
       }
     };
 
+    const scheduleIntersectionCheck = (clientX: number, clientY: number) => {
+      pendingPointerPosition = { clientX, clientY };
+      if (hoverFrameId !== null) return;
+
+      hoverFrameId = requestAnimationFrame(() => {
+        hoverFrameId = null;
+        if (!pendingPointerPosition) return;
+        const { clientX: pendingX, clientY: pendingY } = pendingPointerPosition;
+        pendingPointerPosition = null;
+        checkIntersections(pendingX, pendingY);
+      });
+    };
+
     const handleWheel = (e: WheelEvent) => {
       const zoomSpeed = 0.001;
       const { minZoom: globalMin, maxZoom: globalMax } = cameraConfig;
@@ -915,7 +934,7 @@ export default function InteractiveDesk({
     };
 
     const handlePointerDown = (e: MouseEvent) => {
-      checkIntersections(e);
+      checkIntersections(e.clientX, e.clientY);
       if (!currentHover) {
         isGrabbingRef.current = true;
         prevMouseRef.current = { x: e.clientX, y: e.clientY };
@@ -923,13 +942,14 @@ export default function InteractiveDesk({
     };
 
     const handlePointerMove = (e: MouseEvent) => {
-      checkIntersections(e);
       if (isGrabbingRef.current) {
         const deltaX = e.clientX - prevMouseRef.current.x;
         const deltaY = e.clientY - prevMouseRef.current.y;
         rotationRef.current.yaw -= deltaX * 0.005;
         rotationRef.current.pitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, rotationRef.current.pitch + deltaY * 0.005));
         prevMouseRef.current = { x: e.clientX, y: e.clientY };
+      } else {
+        scheduleIntersectionCheck(e.clientX, e.clientY);
       }
     };
 
@@ -958,7 +978,7 @@ export default function InteractiveDesk({
     };
 
     const handleClick = (e: MouseEvent) => {
-      checkIntersections(e);
+      checkIntersections(e.clientX, e.clientY);
       if (currentHover) {
         if (currentHover === 'ui-about') {
           onSelect('about-me');
@@ -1008,7 +1028,8 @@ export default function InteractiveDesk({
       const w = mountNode.clientWidth;
       const h = mountNode.clientHeight;
       camera.aspect = w / h;
-      updateFOV();
+      updateFOV(w, h);
+      applyRendererQuality();
       renderer.setSize(w, h);
     };
     window.addEventListener('resize', handleResize);
@@ -1059,8 +1080,9 @@ export default function InteractiveDesk({
       const lerpFactor = 0.05;
 
       // Always stay in the orbital overview; selection should not reroute the camera.
-      camera.position.lerp(new THREE.Vector3(camX, 1 * zoom + camY, camZ + 2), lerpFactor);
-      cameraTarget.lerp(new THREE.Vector3(0, 0, 2), lerpFactor);
+      desiredCameraPosition.set(camX, (1 * zoom) + camY, camZ + 2);
+      camera.position.lerp(desiredCameraPosition, lerpFactor);
+      cameraTarget.lerp(desiredCameraTarget, lerpFactor);
 
       camera.lookAt(cameraTarget);
       renderFrame();
@@ -1121,15 +1143,21 @@ export default function InteractiveDesk({
         clearTimeout(backgroundTimerRef.current);
         backgroundTimerRef.current = null;
       }
+      if (hoverFrameId !== null) {
+        cancelAnimationFrame(hoverFrameId);
+        hoverFrameId = null;
+      }
       if (warmupIdleId !== null && 'cancelIdleCallback' in window) {
         window.cancelIdleCallback(warmupIdleId);
       }
       if (warmupTimeoutId !== null) {
         clearTimeout(warmupTimeoutId);
       }
+      pendingPointerPosition = null;
       renderFrameRef.current = null;
       startAnimationRef.current = null;
       startBackgroundAnimationRef.current = null;
+      applyRendererQualityRef.current = null;
       window.removeEventListener('resize', handleResize);
       renderer.domElement.removeEventListener('pointerdown', handlePointerDown);
       renderer.domElement.removeEventListener('pointermove', handlePointerMove);

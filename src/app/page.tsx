@@ -11,24 +11,13 @@ import { useIsMobile } from '@/lib/useIsMobile';
 
 const InteractiveDesk = dynamic(() => import('@/components/RawDesk'), { ssr: false });
 
-interface InteractiveDeskProps {
-  selectedId: string | null;
-  onSelect: (id: string | null, previewId?: string | null) => void;
-  hoveredId: string | null;
-  onHover: (id: string | null) => void;
-  onBack?: () => void;
-  onResume?: () => void;
-}
-
 export default function Home() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [showCover, setShowCover] = useState(true);
   const [showResume, setShowResume] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const [isInitializingHistory, setIsInitializingHistory] = useState(true);
   const [shouldPreloadDesktopScene, setShouldPreloadDesktopScene] = useState(false);
   const isMobile = useIsMobile();
 
@@ -38,7 +27,6 @@ export default function Home() {
     if (window.history.state === null) {
       window.history.replaceState({ showCover: true }, '');
     }
-    setIsInitializingHistory(false);
 
     const handlePopState = (event: PopStateEvent) => {
       const state = event.state;
@@ -47,7 +35,6 @@ export default function Home() {
       } else {
         setShowCover(true);
         setSelectedId(null);
-        setHoveredId(null);
       }
     };
 
@@ -139,15 +126,13 @@ export default function Home() {
                 <InteractiveDesk
                   selectedId={selectedId}
                   onSelect={handleSelect}
-                  hoveredId={hoveredId}
-                  onHover={setHoveredId}
+                  onHover={() => {}}
                   onBack={() => {
                     if (window.history.state?.showScene) {
                       window.history.back();
                     } else {
                       setShowCover(true);
                       setSelectedId(null);
-                      setHoveredId(null);
                     }
                   }}
                   onResume={() => setShowResume(true)}
