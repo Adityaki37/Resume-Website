@@ -446,7 +446,14 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
                         </div>
                       )}
 
-                      {!isLoading && (
+                      {showDesktopOnlyState ? (
+                        <div className="flex items-center gap-2 opacity-100">
+                          <Monitor className="w-5 h-5" />
+                          <span className="text-[11px] font-bold tracking-[0.22em] uppercase whitespace-nowrap">
+                            Use desktop for full experience
+                          </span>
+                        </div>
+                      ) : !isLoading && (
                         <div className={`flex items-center gap-2 ${showDesktopOnlyState ? 'opacity-100' : 'opacity-60'}`}>
                           <Monitor className={showDesktopOnlyState ? 'w-5 h-5' : 'w-4 h-4'} />
                           <span className={`${showDesktopOnlyState ? 'text-[11px] tracking-[0.22em]' : 'text-[10px] tracking-[0.2em]'} font-bold uppercase whitespace-nowrap`}>
@@ -485,6 +492,23 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
                     </motion.a>
                   ))}
                 </div>
+
+                <ScrollLink
+                  to="about"
+                  containerId="landing-container"
+                  smooth={true}
+                  duration={900}
+                  offset={-100}
+                  className="md:hidden group inline-flex flex-col items-center self-center gap-2 px-5 py-3 text-center text-black/40 transition-colors hover:text-black cursor-pointer"
+                >
+                  <div className="flex flex-col items-center leading-none">
+                    <ChevronsDown className="w-4 h-4 animate-bounce" />
+                    <ChevronsDown className="w-4 h-4 -mt-1 animate-bounce opacity-55 [animation-delay:150ms]" />
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span className="text-[10px] font-bold tracking-[0.24em] uppercase">Scroll For More</span>
+                  </div>
+                </ScrollLink>
               </div>
             </motion.div>
 
@@ -514,7 +538,7 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
             </motion.div>
           </div>
 
-          <div className="pointer-events-none absolute inset-x-0 bottom-10 md:bottom-12 z-20 flex justify-center">
+          <div className="pointer-events-none absolute inset-x-0 bottom-10 md:bottom-12 z-20 hidden md:flex justify-center">
             <ScrollLink
               to="about"
               containerId="landing-container"
