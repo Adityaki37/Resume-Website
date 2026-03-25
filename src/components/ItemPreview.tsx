@@ -14,9 +14,10 @@ interface ItemPreviewProps {
 export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
   const mountRef = useRef<HTMLDivElement>(null);
   const item = resumeData.find(i => i.id === itemId);
+  const isInvolvementsPreview = itemId === 'involvements';
 
   useEffect(() => {
-    if (!mountRef.current || !item || item.imageUrl) return;
+    if (!mountRef.current || ((!item || item.imageUrl) && !isInvolvementsPreview)) return;
 
     const mountNode = mountRef.current;
 
@@ -76,10 +77,12 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
     };
 
     const loader = new GLTFLoader();
-    const shape = item.shape;
+    const shape = item?.shape;
 
     const applyPreviewRotation = (target: THREE.Object3D) => {
-      if (item.previewConfig?.rotation) {
+      if (isInvolvementsPreview) {
+        target.rotation.set(THREE.MathUtils.degToRad(-8), THREE.MathUtils.degToRad(28), THREE.MathUtils.degToRad(-2));
+      } else if (item?.previewConfig?.rotation) {
         target.rotation.set(
           THREE.MathUtils.degToRad(item.previewConfig.rotation[0]),
           THREE.MathUtils.degToRad(item.previewConfig.rotation[1]),
@@ -114,7 +117,44 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
       fitToView(displayGroup);
     };
 
-    if (item.modelUrl) {
+    if (isInvolvementsPreview) {
+      const boardGroup = new THREE.Group();
+      const board = new THREE.Mesh(
+        new THREE.BoxGeometry(2.6, 0.68, 0.14),
+        new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.8, metalness: 0.15 })
+      );
+      board.castShadow = true;
+      board.receiveShadow = true;
+      boardGroup.add(board);
+
+      const edges = new THREE.LineSegments(
+        new THREE.EdgesGeometry(new THREE.BoxGeometry(2.6, 0.68, 0.14)),
+        new THREE.LineBasicMaterial({ color: '#666666', transparent: true, opacity: 0.35 })
+      );
+      boardGroup.add(edges);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 1024;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 110px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('INVOLVEMENTS', canvas.width / 2, canvas.height / 2);
+      }
+
+      const texture = new THREE.CanvasTexture(canvas);
+      const label = new THREE.Mesh(
+        new THREE.PlaneGeometry(2.22, 0.5),
+        new THREE.MeshBasicMaterial({ map: texture, transparent: true })
+      );
+      label.position.z = 0.071;
+      boardGroup.add(label);
+      finalizeModel(boardGroup);
+    } else if (item?.modelUrl) {
       loader.load(item.modelUrl, (gltf) => {
         const model = gltf.scene;
         if (itemId === 'chessboard' || itemId === 'chess') {
@@ -145,7 +185,7 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
         coinGroup.add(coin);
       }
       finalizeModel(coinGroup);
-    } else if (itemId === 'delphi' || itemId === 'arbitrage-app') {
+    } else if (itemId === 'fireboy-watergirl' || itemId === 'arbitrage-app') {
       loader.load('/cyberpunk_desk.glb', (gltf) => {
         const desk = gltf.scene;
         const previewGroup = new THREE.Group();
@@ -176,11 +216,11 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
 
         desk.traverse((child: any) => {
           if (child.isMesh) {
-            if (itemId === 'delphi' && (child.name === 'Object_5' || child.name === 'Object_6')) {
+            if (itemId === 'fireboy-watergirl' && (child.name === 'Object_5' || child.name === 'Object_6')) {
               addCloneWithWorldTransform(child, (clone) => {
                 if (child.name === 'Object_5' && (clone.material as any).emissive) {
                   (clone.material as any).emissive.set(color);
-                  (clone.material as any).emissiveIntensity = item.glowEnabled ? 2 : 0;
+                  (clone.material as any).emissiveIntensity = item?.glowEnabled ? 2 : 0;
                 }
               });
             }
@@ -213,7 +253,7 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
         mesh = monitorGroup;
       } else mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), createMat());
       finalizeModel(mesh);
-      if (item.previewConfig?.position) {
+      if (item?.previewConfig?.position) {
         mesh.position.x += item.previewConfig.position[0];
         mesh.position.y += item.previewConfig.position[1];
         mesh.position.z += item.previewConfig.position[2];
@@ -233,8 +273,8 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
     let animationFrameId: number;
       const animate = () => {
         animationFrameId = requestAnimationFrame(animate);
-      const speed = item.previewConfig?.rotationSpeed ?? 0.005;
-      if (item.previewConfig?.autoRotate !== false) spinGroup.rotation.y += speed;
+      const speed = isInvolvementsPreview ? 0.006 : item?.previewConfig?.rotationSpeed ?? 0.005;
+      if (isInvolvementsPreview || item?.previewConfig?.autoRotate !== false) spinGroup.rotation.y += speed;
         renderer.render(scene, camera);
       };
     animate();
@@ -246,7 +286,7 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
       renderer.dispose();
       scene.clear();
     };
-  }, [item, color, itemId]);
+  }, [item, color, itemId, isInvolvementsPreview]);
 
   if (item?.imageUrl) {
     return (

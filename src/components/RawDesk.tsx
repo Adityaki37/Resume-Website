@@ -247,7 +247,7 @@ export default function InteractiveDesk({
 
     loader.load(deskUrl, (deskGltf) => {
       const desk = deskGltf.scene;
-      const delphiItem = resumeData.find(d => d.id === 'delphi');
+      const fireboyItem = resumeData.find(d => d.id === 'fireboy-watergirl');
       const sffItem = resumeData.find(d => d.id === 'arbitrage-app');
 
       const deskPivot = new THREE.Group();
@@ -262,14 +262,14 @@ export default function InteractiveDesk({
         signpostGroup.name = 'signpost';
 
         // 1. The Post (Matte Black) - Positioned behind boards to avoid clipping
-        const postGeo = new THREE.CylinderGeometry(0.04, 0.04, 3.5, 12);
+        const postGeo = new THREE.CylinderGeometry(0.04, 0.04, 4.2, 12);
         const postMat = new THREE.MeshStandardMaterial({
           color: '#111111',
           roughness: 0.8,
           metalness: 0.1
         });
         const post = new THREE.Mesh(postGeo, postMat);
-        post.position.set(0, 0.75, -0.1);
+        post.position.set(0, 0.9, -0.1);
         post.castShadow = true;
         post.receiveShadow = true;
         signpostGroup.add(post);
@@ -343,7 +343,7 @@ export default function InteractiveDesk({
         };
 
         const contactGroup = new THREE.Group();
-        contactGroup.position.set(0, 0.9, 0); // Spaced 0.7 from Resume PDF (1.6)
+        contactGroup.position.set(0, 0.45, 0);
         contactGroup.rotation.y = 0.4;
 
         const totalWidth = 2.2;
@@ -447,10 +447,10 @@ export default function InteractiveDesk({
         signpostGroup.add(contactGroup);
         contactGroup.rotation.y = 0.25;
 
-        // Standardized Opaque Black Boards with perfect 0.7m spacing
-        createBoard("ABOUT ME", "ui-about", 2.3, -0.35, "900 72px Inter, sans-serif");
-        createBoard("RESUME PDF", "ui-resume", 1.6, 0.25, "900 72px Inter, sans-serif");
-        createBoard("GO BACK", "ui-back", 0.2, -0.15, "900 72px Inter, sans-serif");
+        createBoard("ABOUT ME", "ui-about", 2.45, -0.35, "900 72px Inter, sans-serif");
+        createBoard("INVOLVEMENTS", "ui-involvements", 1.8, 0.05, "900 54px Inter, sans-serif");
+        createBoard("RESUME PDF", "ui-resume", 1.15, 0.25, "900 72px Inter, sans-serif");
+        createBoard("GO BACK", "ui-back", -0.15, -0.15, "900 72px Inter, sans-serif");
 
         signpostGroup.position.set(...signpostConfig.position);
         signpostGroup.rotation.y = THREE.MathUtils.degToRad(signpostConfig.rotationY);
@@ -525,7 +525,7 @@ export default function InteractiveDesk({
         pcHoverGroup.add(light);
       }
 
-      if (targets.monitor && targets.screen && delphiItem) {
+      if (targets.monitor && targets.screen && fireboyItem) {
         const monitor = targets.monitor;
         const screen = targets.screen;
         monitor.castShadow = true;
@@ -550,13 +550,13 @@ export default function InteractiveDesk({
 
         monitorPivot.attach(monitor);
         monitorPivot.attach(screen);
-        monitorPivot.scale.set(delphiItem.scale, delphiItem.scale, delphiItem.scale);
+        monitorPivot.scale.set(fireboyItem.scale, fireboyItem.scale, fireboyItem.scale);
 
-        monitor.userData = { id: 'delphi' };
-        screen.userData = { id: 'delphi' };
+        monitor.userData = { id: 'fireboy-watergirl' };
+        screen.userData = { id: 'fireboy-watergirl' };
 
-        meshes.push({ obj: monitorPivot, item: delphiItem!, baseY: monitorPivot.position.y, isModel: true });
-        const light = new THREE.PointLight(new THREE.Color(delphiItem.color), 0, 3);
+        meshes.push({ obj: monitorPivot, item: fireboyItem, baseY: monitorPivot.position.y, isModel: true });
+        const light = new THREE.PointLight(new THREE.Color(fireboyItem.color), 0, 3);
         light.position.set(0, 0, 1.0);
         light.name = 'hoverLight';
         monitorPivot.add(light);
@@ -603,7 +603,7 @@ export default function InteractiveDesk({
     resumeData.forEach(item => {
       // Shared position logic for Sci-Fi layout
       if (item.id === 'arbitrage-app') return; // Now represented by the desk model
-      if (item.id === 'delphi') return; // Now represented by the desk monitors
+      if (item.id === 'fireboy-watergirl') return; // Represented by the desk monitors
 
       const pos = item.position;
 
@@ -962,6 +962,10 @@ export default function InteractiveDesk({
       if (currentHover) {
         if (currentHover === 'ui-about') {
           onSelect('about-me');
+          return;
+        }
+        if (currentHover === 'ui-involvements') {
+          onSelect('involvements');
           return;
         }
         if (currentHover === 'ui-resume') {

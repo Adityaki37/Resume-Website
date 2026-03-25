@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronRight, ChevronDown, Award, Briefcase, Code, Heart, ArrowLeft, ArrowRight, X } from 'lucide-react';
+import { ChevronRight, ChevronDown, Award, Briefcase, Code, Heart, ArrowLeft, ArrowRight, X, UserRound } from 'lucide-react';
 import { resumeData, ResumeCategory } from '../data/resume';
 import { cn } from '../lib/utils';
 
@@ -13,6 +13,7 @@ interface SidebarTreeProps {
 const CATEGORY_ICONS: Record<Exclude<ResumeCategory, 'Interests'>, React.ElementType> = {
   Education: Award,
   Experience: Briefcase,
+  Involvements: Heart,
   Projects: Code,
 };
 
@@ -22,11 +23,20 @@ export default function SidebarTree({ selectedId, onSelect }: SidebarTreeProps) 
     Education: false,
     Experience: false,
     Projects: false,
+    Involvements: false,
   });
 
   // Auto-expand the category that contains the selected item
   useEffect(() => {
     if (selectedId) {
+      if (selectedId === 'involvements') {
+        setExpandedCats(prev => ({ ...prev, Involvements: true }));
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+          setIsOpen(false);
+        }
+        return;
+      }
+
       const selectedItem = resumeData.find(item => item.id === selectedId);
       if (selectedItem) {
         setExpandedCats(prev => ({ ...prev, [selectedItem.category]: true }));
@@ -54,7 +64,7 @@ export default function SidebarTree({ selectedId, onSelect }: SidebarTreeProps) 
     onSelect(resumeData[prevIndex].id);
   };
 
-  const categories = (Object.keys(CATEGORY_ICONS) as ResumeCategory[]).filter(c => c !== 'Interests');
+  const categories: Array<Exclude<ResumeCategory, 'Interests'>> = ['Education', 'Experience', 'Projects', 'Involvements'];
 
   return (
     <>
@@ -90,8 +100,24 @@ export default function SidebarTree({ selectedId, onSelect }: SidebarTreeProps) 
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin scrollbar-thumb-gray-200">
+          <div className="space-y-1">
+            <button
+              onClick={() => onSelect('about-me')}
+              className="flex items-start gap-2 w-full px-2 py-1.5 text-sm font-semibold text-[#2e2e2c] hover:text-[#0c0c0c] hover:bg-[#0c0c0c]/5 rounded transition-colors group"
+            >
+              <ChevronRight className="w-4 h-4 shrink-0 mt-1 text-gray-400 group-hover:text-[#0c0c0c] transition-colors" />
+              <UserRound className="w-4 h-4 shrink-0 mt-1 self-start" />
+              <div className="min-w-0 text-left">
+                <div className="leading-none">About Me</div>
+                <div className="mt-1 text-xs font-medium text-[#2e2e2c]/55 normal-case tracking-normal">
+                  Aditya Induri
+                </div>
+              </div>
+            </button>
+          </div>
+
           {categories.map((cat) => {
-            const items = resumeData.filter(item => item.category === cat);
+            const items = resumeData.filter(item => item.category === cat && item.id !== 'about-me');
             const isExpanded = expandedCats[cat];
             const Icon = CATEGORY_ICONS[cat];
 
@@ -99,15 +125,15 @@ export default function SidebarTree({ selectedId, onSelect }: SidebarTreeProps) 
               <div key={cat} className="space-y-1">
                 <button
                   onClick={() => toggleCategory(cat)}
-                  className="flex items-center w-full px-2 py-1.5 text-sm font-semibold text-[#2e2e2c] hover:text-[#0c0c0c] hover:bg-[#0c0c0c]/5 rounded transition-colors group"
+                  className="flex items-center gap-2 w-full px-2 py-1.5 text-sm font-semibold leading-none text-[#2e2e2c] hover:text-[#0c0c0c] hover:bg-[#0c0c0c]/5 rounded transition-colors group"
                 >
                   {isExpanded ? (
-                    <ChevronDown className="w-4 h-4 mr-1 text-[#0c0c0c]/70 group-hover:text-[#0c0c0c] transition-colors" />
+                    <ChevronDown className="w-4 h-4 shrink-0 self-center text-[#0c0c0c]/70 group-hover:text-[#0c0c0c] transition-colors" />
                   ) : (
-                    <ChevronRight className="w-4 h-4 mr-1 text-gray-400 group-hover:text-[#0c0c0c] transition-colors" />
+                    <ChevronRight className="w-4 h-4 shrink-0 self-center text-gray-400 group-hover:text-[#0c0c0c] transition-colors" />
                   )}
-                  <Icon className="w-4 h-4 mr-2" />
-                  {cat}
+                  <Icon className="w-4 h-4 shrink-0 self-center" />
+                  <span className="self-center">{cat}</span>
                 </button>
 
                 {isExpanded && (
@@ -115,10 +141,10 @@ export default function SidebarTree({ selectedId, onSelect }: SidebarTreeProps) 
                     {items.map((item) => (
                       <button
                         key={item.id}
-                        onClick={() => onSelect(item.id)}
+                        onClick={() => onSelect(cat === 'Involvements' ? 'involvements' : item.id)}
                         className={cn(
                           "block w-full text-left px-3 py-1.5 text-sm rounded transition-all duration-300 relative",
-                          selectedId === item.id
+                          selectedId === item.id || (cat === 'Involvements' && selectedId === 'involvements')
                             ? "bg-[#0c0c0c] text-[#fffffe] font-bold border-l-2 border-[#0c0c0c] shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
                             : "text-[#2e2e2c]/70 hover:text-[#0c0c0c] hover:bg-[#0c0c0c]/5 border-l-2 border-transparent font-normal"
                         )}
@@ -161,4 +187,3 @@ export default function SidebarTree({ selectedId, onSelect }: SidebarTreeProps) 
     </>
   );
 }
-

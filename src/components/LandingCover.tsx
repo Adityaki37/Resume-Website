@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Github, Linkedin, Mail, ExternalLink, ArrowRight, Monitor, ChevronRight, Menu, X } from 'lucide-react';
+import { Linkedin, Mail, ArrowRight, Monitor, Menu, X } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useMemo, useEffect, useRef, memo } from 'react';
 import { resumeData } from '@/data/resume';
@@ -145,7 +145,7 @@ const EducationItem = ({ item }: { item: any }) => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
       {item.bullets.map((bullet: string, i: number) => (
         <div key={i} className="flex items-start gap-4">
-          <ChevronRight className="w-4 h-4 mt-1 text-black shrink-0" />
+          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-black shrink-0" />
           <p className="text-zinc-500 font-medium leading-relaxed max-w-2xl">{bullet}</p>
         </div>
       ))}
@@ -164,7 +164,7 @@ const ExperienceItem = ({ item }: { item: any }) => (
     <div className="space-y-4">
       {item.bullets.map((bullet: string, i: number) => (
         <div key={i} className="flex items-start gap-4">
-          <ChevronRight className="w-4 h-4 mt-1 text-black shrink-0" />
+          <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-black shrink-0" />
           <p className="text-zinc-500 font-medium leading-relaxed max-w-2xl">{bullet}</p>
         </div>
       ))}
@@ -189,7 +189,7 @@ const Navbar = ({ containerId }: { containerId: string }) => {
     { name: 'Education', to: 'education' },
     { name: 'Experience', to: 'experience' },
     { name: 'Projects', to: 'projects' },
-    { name: 'Expertise', to: 'skills' },
+    { name: 'Involvements', to: 'involvements' },
     { name: 'Contact', to: 'contact' },
   ];
 
@@ -415,7 +415,6 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
 
                 <div className="flex items-center gap-2 relative">
                   {[
-                    { Icon: Github, href: "https://github.com/adityaki37" },
                     { Icon: Linkedin, href: "https://www.linkedin.com/in/aditya-induri/" },
                     { Icon: Mail, href: "mailto:adityainduri37@gmail.com" }
                   ].map((item, i) => (
@@ -447,14 +446,14 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
                 whileHover={{ rotate: 2, scale: 1.05 }}
                 whileTap={{ scale: 0.98 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                className="relative w-72 h-72 lg:w-[420px] lg:h-[420px] rounded-[100px] overflow-hidden border-8 border-white bg-zinc-50 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.2)] p-2"
+                className="group relative w-72 h-72 lg:w-[420px] lg:h-[420px] rounded-[100px] overflow-hidden border-8 border-white bg-zinc-50 shadow-[0_60px_100px_-20px_rgba(0,0,0,0.2)] p-2"
               >
                 <div className="relative w-full h-full rounded-[60px] overflow-hidden">
                   <Image
                     src="/Induri.Aditya_Headshot.jpg"
                     alt="Aditya Induri"
                     fill
-                    className="object-cover"
+                    className="object-cover grayscale transition-[filter] duration-500 group-hover:grayscale-0"
                     priority
                   />
                 </div>
@@ -512,7 +511,7 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
             <SectionHeader title="Experience" />
             <div className="max-w-4xl mx-auto">
               <div className="border-l-2 border-black/10">
-                {resumeData.filter(i => i.category === 'Experience').map((item) => (
+                {resumeData.filter(i => i.category === 'Experience' && i.id !== 'about-me').map((item) => (
                   <ExperienceItem key={item.id} item={item} />
                 ))}
               </div>
@@ -522,22 +521,21 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
           {/* Projects Section */}
           <section id="projects" className="scroll-mt-24">
             <SectionHeader title="Selected Projects" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
               {resumeData.filter(i => i.category === 'Projects').map((item) => (
                 <ProjectCard key={item.id} item={item} />
               ))}
             </div>
           </section>
 
-          {/* Skills Section */}
-          <section id="skills" className="scroll-mt-24">
-            <SectionHeader title="Expertise" />
-            <div className="flex flex-wrap gap-4">
-              {Array.from(new Set(resumeData.flatMap(i => [i.interestTitle, ...i.bullets.map(b => b.split(' ')[0])]))).filter(s => s.length > 3).slice(0, 15).map((skill) => (
-                <div key={skill} className="px-8 py-4 bg-[#0c0c0c] text-white rounded-2xl font-black text-sm tracking-tighter uppercase italic hover:scale-105 hover:bg-zinc-800 transition-all cursor-default shadow-lg">
-                  {skill}
-                </div>
-              ))}
+          <section id="involvements" className="scroll-mt-24">
+            <SectionHeader title="Involvements" />
+            <div className="max-w-4xl mx-auto">
+              <div className="border-l-2 border-black/10">
+                {resumeData.filter(i => i.category === 'Involvements').map((item) => (
+                  <ExperienceItem key={item.id} item={item} />
+                ))}
+              </div>
             </div>
           </section>
 
@@ -557,7 +555,6 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
                 </a>
                 <div className="flex items-center gap-4">
                   {[
-                    { Icon: Github, href: "https://github.com/adityaki37" },
                     { Icon: Linkedin, href: "https://www.linkedin.com/in/aditya-induri/" }
                   ].map((item, i) => (
                     <a
