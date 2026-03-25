@@ -172,7 +172,7 @@ const EducationItem = ({ item }: { item: any }) => (
     <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-black z-10" />
     <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 mb-4">
       <h3 className="text-2xl font-black text-black tracking-tight">{item.title}</h3>
-      <span className="text-sm font-bold text-zinc-400 uppercase tracking-widest bg-zinc-50 px-3 py-1 rounded-full whitespace-nowrap">{item.date}</span>
+      <span className="self-start text-sm font-bold text-zinc-400 uppercase tracking-widest bg-zinc-50 px-3 py-1 rounded-full whitespace-nowrap md:self-auto">{item.date}</span>
     </div>
     <p className="text-lg font-bold text-zinc-600 mb-6 italic">{item.subtitle}</p>
     <div className="space-y-4">
@@ -193,7 +193,7 @@ const ExperienceItem = ({ item }: { item: any }) => (
     <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-black z-10" />
     <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 mb-4">
       <h3 className="text-2xl font-black text-black tracking-tight">{item.title}</h3>
-      <span className="text-sm font-bold text-zinc-400 uppercase tracking-widest bg-zinc-50 px-3 py-1 rounded-full whitespace-nowrap">{item.date}</span>
+      <span className="self-start text-sm font-bold text-zinc-400 uppercase tracking-widest bg-zinc-50 px-3 py-1 rounded-full whitespace-nowrap md:self-auto">{item.date}</span>
     </div>
     <p className="text-lg font-bold text-zinc-600 mb-6 italic">{item.subtitle}</p>
     <div className="space-y-4">
@@ -420,15 +420,18 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
                 <motion.div className="flex flex-wrap items-center gap-6">
                   <motion.button
                     onClick={handleStartInteraction}
-                    disabled={isLoading || !canEnter}
+                    disabled={isLoading}
+                    aria-disabled={isLoading || !canEnter}
                     whileHover={isLoading || !canEnter ? {} : { scale: 1.05 }}
                     whileTap={isLoading || !canEnter ? {} : { scale: 0.95 }}
-                    className={`group relative flex items-center justify-center gap-4 rounded-[40px] px-16 py-8 transition-all duration-500 shadow-2xl ${isLoading
-                      ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed border-2 border-zinc-200'
-                      : 'bg-black text-white border-2 border-black shadow-black/20'
-                      } ${!canEnter && !isLoading ? 'cursor-not-allowed opacity-90' : ''}`}
+                    className={`group relative flex items-center justify-center gap-4 rounded-[40px] transition-all duration-500 shadow-2xl ${showDesktopOnlyState
+                      ? 'px-8 py-5 bg-black text-white border-2 border-black shadow-black/20 cursor-not-allowed'
+                      : isLoading
+                        ? 'px-16 py-8 bg-zinc-100 text-zinc-400 cursor-not-allowed border-2 border-zinc-200'
+                        : 'px-16 py-8 bg-black text-white border-2 border-black shadow-black/20'
+                      }`}
                   >
-                    <div className="flex flex-col items-center gap-2">
+                    <div className={`flex items-center ${showDesktopOnlyState ? 'gap-3' : 'flex-col gap-2'}`}>
                       {!showDesktopOnlyState && (
                         <div className="relative">
                           <span className={`font-black tracking-tighter text-4xl uppercase italic transition-all duration-500 text-center ${isLoading ? 'opacity-50' : 'opacity-100'}`}>
@@ -444,9 +447,9 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
                       )}
 
                       {!isLoading && (
-                        <div className="flex items-center gap-2 opacity-60">
-                          <Monitor className="w-4 h-4" />
-                          <span className="text-[10px] font-bold tracking-[0.2em] uppercase whitespace-nowrap">
+                        <div className={`flex items-center gap-2 ${showDesktopOnlyState ? 'opacity-100' : 'opacity-60'}`}>
+                          <Monitor className={showDesktopOnlyState ? 'w-5 h-5' : 'w-4 h-4'} />
+                          <span className={`${showDesktopOnlyState ? 'text-[11px] tracking-[0.22em]' : 'text-[10px] tracking-[0.2em]'} font-bold uppercase whitespace-nowrap`}>
                             Use desktop for full experience
                           </span>
                         </div>

@@ -19,6 +19,8 @@ export const metadata: Metadata = {
   description: "Software Engineer based in Ohio - crafting digital prototypes and immersive interfaces.",
   icons: {
     icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
   },
 };
 
