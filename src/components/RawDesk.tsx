@@ -34,7 +34,7 @@ export default function InteractiveDesk({
   const backgroundTimerRef = useRef<number | null>(null);
   const renderFrameRef = useRef<(() => void) | null>(null);
   const startAnimationRef = useRef<(() => void) | null>(null);
-  const startBackgroundAnimationRef = useRef<(() => void) | null>(null);
+  const stopAnimationRef = useRef<(() => void) | null>(null);
   const applyRendererQualityRef = useRef<(() => void) | null>(null);
 
   // Refs to hold mutable state for the animation loop without triggering scene rebuilds
@@ -51,7 +51,7 @@ export default function InteractiveDesk({
     showCoverRef.current = Boolean(showCover);
     applyRendererQualityRef.current?.();
     if (showCover) {
-      startBackgroundAnimationRef.current?.();
+      stopAnimationRef.current?.();
     } else {
       startAnimationRef.current?.();
       renderFrameRef.current?.();
@@ -217,9 +217,40 @@ export default function InteractiveDesk({
     const loader = new GLTFLoader(manager);
     let warmupTimeoutId: ReturnType<typeof setTimeout> | null = null;
     let warmupIdleId: number | null = null;
+    let warmupCheckTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    let loadCompleteTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    let didNotifyLoadComplete = false;
+    let lastCoverInteractionAt = 0;
+    const COVER_WARMUP_IDLE_MS = 450;
 
     manager.onProgress = (url, itemsLoaded, itemsTotal) => {
       if (onLoadProgress) onLoadProgress(Math.round((itemsLoaded / itemsTotal) * 100));
+    };
+
+    const clearWarmupSchedule = () => {
+      if (warmupIdleId !== null && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(warmupIdleId);
+        warmupIdleId = null;
+      }
+      if (warmupTimeoutId !== null) {
+        clearTimeout(warmupTimeoutId);
+        warmupTimeoutId = null;
+      }
+      if (warmupCheckTimeoutId !== null) {
+        clearTimeout(warmupCheckTimeoutId);
+        warmupCheckTimeoutId = null;
+      }
+    };
+
+    const notifyLoadComplete = () => {
+      if (didNotifyLoadComplete) return;
+      didNotifyLoadComplete = true;
+      if (loadCompleteTimeoutId !== null) {
+        clearTimeout(loadCompleteTimeoutId);
+      }
+      loadCompleteTimeoutId = setTimeout(() => {
+        if (onLoadComplete) onLoadComplete();
+      }, 120);
     };
 
     const warmupScene = () => {
@@ -227,30 +258,64 @@ export default function InteractiveDesk({
       renderer.render(scene, camera);
       renderer.compile(scene, camera);
       needsWarmupRef.current = false;
+      notifyLoadComplete();
+    };
+
+    const scheduleWarmupWhenSafe = () => {
+      if (!sceneLoadedRef.current || !needsWarmupRef.current) return;
+
+      clearWarmupSchedule();
+
+      if (!showCoverRef.current) {
+        warmupScene();
+        return;
+      }
+
+      const elapsed = performance.now() - lastCoverInteractionAt;
+      const remainingQuietTime = Math.max(COVER_WARMUP_IDLE_MS - elapsed, 0);
+
+      const requestWarmup = () => {
+        if (!sceneLoadedRef.current || !needsWarmupRef.current) return;
+
+        const currentElapsed = performance.now() - lastCoverInteractionAt;
+        if (showCoverRef.current && currentElapsed < COVER_WARMUP_IDLE_MS) {
+          scheduleWarmupWhenSafe();
+          return;
+        }
+
+        warmupScene();
+      };
+
+      warmupCheckTimeoutId = setTimeout(() => {
+        warmupCheckTimeoutId = null;
+
+        if ('requestIdleCallback' in window) {
+          warmupIdleId = window.requestIdleCallback(() => {
+            warmupIdleId = null;
+            requestWarmup();
+          }, { timeout: 1500 });
+        } else {
+          warmupTimeoutId = setTimeout(() => {
+            warmupTimeoutId = null;
+            requestWarmup();
+          }, 16);
+        }
+      }, remainingQuietTime);
+    };
+
+    const markCoverInteraction = () => {
+      if (!showCoverRef.current) return;
+      lastCoverInteractionAt = performance.now();
+
+      if (sceneLoadedRef.current && needsWarmupRef.current) {
+        scheduleWarmupWhenSafe();
+      }
     };
 
     manager.onLoad = () => {
       sceneLoadedRef.current = true;
       needsWarmupRef.current = true;
-
-      // Warm the scene in the background when the browser is idle so entering still feels seamless.
-      if (showCoverRef.current) {
-        if ('requestIdleCallback' in window) {
-          warmupIdleId = window.requestIdleCallback(() => {
-            warmupScene();
-          }, { timeout: 2000 });
-        } else {
-          warmupTimeoutId = setTimeout(() => {
-            warmupScene();
-          }, 1000);
-        }
-      } else {
-        warmupScene();
-      }
-
-      setTimeout(() => {
-        if (onLoadComplete) onLoadComplete();
-      }, 300);
+      scheduleWarmupWhenSafe();
     };
 
     // 4. Parallel Asset Loading
@@ -1130,11 +1195,19 @@ export default function InteractiveDesk({
       advanceScene(delta);
     };
 
-    const startAnimation = () => {
+    const stopAnimation = () => {
       if (backgroundTimerRef.current !== null) {
         clearTimeout(backgroundTimerRef.current);
         backgroundTimerRef.current = null;
       }
+      if (animationFrameRef.current !== null) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+    };
+
+    const startAnimation = () => {
+      stopAnimation();
       if (animationFrameRef.current !== null) return;
       clock.start();
       clock.getDelta();
@@ -1143,58 +1216,35 @@ export default function InteractiveDesk({
 
     startAnimationRef.current = startAnimation;
 
-    const startBackgroundAnimation = () => {
-      if (!showCoverRef.current || backgroundTimerRef.current !== null || animationFrameRef.current !== null) return;
+    stopAnimationRef.current = stopAnimation;
 
-      const tick = () => {
-        backgroundTimerRef.current = window.setTimeout(() => {
-          backgroundTimerRef.current = null;
-          advanceScene(clock.getDelta());
+    window.addEventListener('wheel', markCoverInteraction, { passive: true });
+    window.addEventListener('touchmove', markCoverInteraction, { passive: true });
+    window.addEventListener('scroll', markCoverInteraction, true);
 
-          if (showCoverRef.current) {
-            tick();
-          }
-        }, 1000 / 12);
-      };
-
-      clock.start();
-      clock.getDelta();
-      tick();
-    };
-
-    startBackgroundAnimationRef.current = startBackgroundAnimation;
-
-    if (showCoverRef.current) {
-      startBackgroundAnimation();
-    } else {
+    if (!showCoverRef.current) {
       startAnimation();
     }
 
     return () => {
-      if (animationFrameRef.current !== null) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
-      if (backgroundTimerRef.current !== null) {
-        clearTimeout(backgroundTimerRef.current);
-        backgroundTimerRef.current = null;
-      }
+      stopAnimation();
       if (hoverFrameId !== null) {
         cancelAnimationFrame(hoverFrameId);
         hoverFrameId = null;
       }
-      if (warmupIdleId !== null && 'cancelIdleCallback' in window) {
-        window.cancelIdleCallback(warmupIdleId);
-      }
-      if (warmupTimeoutId !== null) {
-        clearTimeout(warmupTimeoutId);
+      clearWarmupSchedule();
+      if (loadCompleteTimeoutId !== null) {
+        clearTimeout(loadCompleteTimeoutId);
       }
       pendingPointerPosition = null;
       renderFrameRef.current = null;
       startAnimationRef.current = null;
-      startBackgroundAnimationRef.current = null;
+      stopAnimationRef.current = null;
       applyRendererQualityRef.current = null;
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('wheel', markCoverInteraction);
+      window.removeEventListener('touchmove', markCoverInteraction);
+      window.removeEventListener('scroll', markCoverInteraction, true);
       renderer.domElement.removeEventListener('pointerdown', handlePointerDown);
       renderer.domElement.removeEventListener('pointermove', handlePointerMove);
       renderer.domElement.removeEventListener('pointerup', handlePointerUp);

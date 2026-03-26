@@ -206,9 +206,14 @@ export default function BlogPage() {
                       {entry.bullets && (
                         <ul className="space-y-3">
                           {entry.bullets.map((bullet) => (
-                            <li key={bullet} className="flex items-start gap-3 text-sm font-medium leading-7 text-black/68 md:text-base md:leading-8">
-                              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-black" />
-                              <span>{bullet}</span>
+                            <li
+                              key={bullet}
+                              className="grid grid-cols-[0.375rem_minmax(0,1fr)] items-start gap-x-3 text-sm font-medium leading-7 text-black/68 md:text-base md:leading-8"
+                            >
+                              <span className="flex h-7 items-center justify-center md:h-8">
+                                <span className="h-1.5 w-1.5 rounded-full bg-black" />
+                              </span>
+                              <span className="min-w-0">{bullet}</span>
                             </li>
                           ))}
                         </ul>
