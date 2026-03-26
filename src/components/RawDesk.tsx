@@ -83,6 +83,35 @@ export default function InteractiveDesk({
     const mountNode = mountRef.current;
     if (!mountNode) return;
 
+    const applyModelMaterialTuning = (mesh: THREE.Mesh, itemId: string) => {
+      if (!mesh.material) return;
+
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      mats.forEach((m: any) => {
+        if (!m.isMeshStandardMaterial) return;
+
+        m.envMapIntensity = 1.0;
+        if (m.aoMap) m.aoMapIntensity = 1.5;
+
+        if (itemId === 'delphi') {
+          const isBlackWeight = m.name === 'Material.001';
+          if (isBlackWeight) {
+            m.color = new THREE.Color('#1a1a1a');
+            m.metalness = 0.1;
+            m.roughness = 0.8;
+            m.emissive = new THREE.Color('#000000');
+            m.emissiveIntensity = 0;
+          } else {
+            m.color = new THREE.Color('#cccccc');
+            m.metalness = 0.5;
+            m.roughness = 0.4;
+            m.emissive = new THREE.Color('#000000');
+            m.emissiveIntensity = 0;
+          }
+        }
+      });
+    };
+
     // 0. State for Cyberpunk interaction
     const meshes: { obj: THREE.Object3D, item: ResumeItem, baseY: number, isModel: boolean }[] = [];
     if (process.env.NODE_ENV !== 'production') {
@@ -723,6 +752,8 @@ export default function InteractiveDesk({
                   }
                 });
               }
+
+              applyModelMaterialTuning(mesh, item.id);
 
               // Hide broken robot parts and stray mechanical artifacts in chessboard model
               if (item.id === 'chess') {

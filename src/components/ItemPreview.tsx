@@ -108,22 +108,42 @@ export default function ItemPreview({ itemId, color }: ItemPreviewProps) {
       target.scale.setScalar(previewScale);
     };
 
+    const applyModelMaterialTuning = (mesh: THREE.Mesh, currentItemId: string) => {
+      if (!mesh.material) return;
+
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      mats.forEach((m: any) => {
+        m.side = THREE.DoubleSide;
+        if (!m.isMeshStandardMaterial) return;
+
+        m.envMapIntensity = 1.5;
+        if (m.metalness > 0.5) m.roughness = Math.max(m.roughness, 0.25);
+
+        if (currentItemId === 'delphi') {
+          const isBlackWeight = m.name === 'Material.001';
+          if (isBlackWeight) {
+            m.color = new THREE.Color('#1a1a1a');
+            m.metalness = 0.1;
+            m.roughness = 0.8;
+            m.emissive = new THREE.Color('#000000');
+            m.emissiveIntensity = 0;
+          } else {
+            m.color = new THREE.Color('#cccccc');
+            m.metalness = 0.5;
+            m.roughness = 0.4;
+            m.emissive = new THREE.Color('#000000');
+            m.emissiveIntensity = 0;
+          }
+        }
+      });
+    };
+
     const finalizeModel = (model: THREE.Object3D) => {
       model.traverse((child) => {
         if (child instanceof THREE.Mesh) {
           child.castShadow = true;
           child.receiveShadow = true;
-          if (child.material) {
-            const mats = Array.isArray(child.material) ? child.material : [child.material];
-            mats.forEach(m => {
-              m.side = THREE.DoubleSide;
-              if ((m as any).isMeshStandardMaterial) {
-                const sm = m as any;
-                sm.envMapIntensity = 1.5;
-                if (sm.metalness > 0.5) sm.roughness = Math.max(sm.roughness, 0.25);
-              }
-            });
-          }
+          applyModelMaterialTuning(child, itemId);
         }
       });
       fitGroup.clear();
