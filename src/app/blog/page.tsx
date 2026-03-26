@@ -176,24 +176,22 @@ export default function BlogPage() {
           </div>
 
           <div className="relative mx-auto max-w-5xl">
-            <div className="absolute bottom-0 left-[15px] top-4 w-px bg-black/10 md:left-[19px]" />
+            <div className="absolute bottom-0 left-[9px] top-4 w-px bg-black/10 md:left-[11px] md:top-5" />
             {journalEntries.map((entry, index) => (
               <article
                 key={entry.day}
-                className="relative pl-12 pb-10 md:pl-16 md:pb-14"
+                className="relative pl-10 pb-10 md:pl-12 md:pb-14"
               >
-                <div className="absolute left-0 top-2 h-8 w-8 rounded-full border-2 border-black bg-white md:left-0 md:h-10 md:w-10" />
+                <div className="absolute left-0 top-1.5 h-5 w-5 rounded-full border-2 border-black bg-white md:left-0 md:top-2 md:h-6 md:w-6" />
                 <div className="space-y-5">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-baseline md:justify-between">
+                  <div className="flex min-h-8 flex-col justify-center gap-3 md:min-h-10 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-black/35">Checkpoint</p>
-                      <h3 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">{entry.day}</h3>
+                      <h3 className="text-3xl font-black tracking-tight md:text-4xl">{entry.day}</h3>
                     </div>
                   </div>
 
-                  <div className="rounded-[1.75rem] border border-black/5 bg-[#f4f4f2]/65 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.06)] backdrop-blur-md md:p-8">
-                    <div className="space-y-5">
-                      {entry.paragraphs && (
+                  <div className="space-y-5">
+                    {entry.paragraphs && (
                         <div className="space-y-4">
                           {entry.paragraphs.map((paragraph) => (
                             <p key={paragraph} className="text-sm font-medium leading-7 text-black/68 md:text-base md:leading-8">
@@ -230,7 +228,6 @@ export default function BlogPage() {
                       )}
                     </div>
                   </div>
-                </div>
               </article>
             ))}
           </div>

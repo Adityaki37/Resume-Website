@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { Linkedin, Mail, ArrowRight, Monitor, Menu, X, ChevronsDown, Heart } from 'lucide-react';
@@ -169,8 +169,8 @@ const ProjectCard = ({ item }: { item: any }) => {
 
 const EducationItem = ({ item }: { item: any }) => (
   <div className="relative pl-12 pb-16 last:pb-0">
-    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-black z-10" />
-    <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 mb-4">
+    <div className="absolute -left-[9px] top-3 w-4 h-4 rounded-full bg-white border-2 border-black z-10" />
+    <div className="flex min-h-8 flex-col justify-center gap-2 mb-4 md:flex-row md:items-center md:justify-between">
       <h3 className="text-2xl font-black text-black tracking-tight">{item.title}</h3>
       <span className="self-start text-sm font-bold text-zinc-400 uppercase tracking-widest bg-zinc-50 px-3 py-1 rounded-full whitespace-nowrap md:self-auto">{item.date}</span>
     </div>
@@ -190,8 +190,8 @@ const EducationItem = ({ item }: { item: any }) => (
 
 const ExperienceItem = ({ item }: { item: any }) => (
   <div className="relative pl-12 pb-16 last:pb-0">
-    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-black z-10" />
-    <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-2 mb-4">
+    <div className="absolute -left-[9px] top-3 w-4 h-4 rounded-full bg-white border-2 border-black z-10" />
+    <div className="flex min-h-8 flex-col justify-center gap-2 mb-4 md:flex-row md:items-center md:justify-between">
       <h3 className="text-2xl font-black text-black tracking-tight">{item.title}</h3>
       <span className="self-start text-sm font-bold text-zinc-400 uppercase tracking-widest bg-zinc-50 px-3 py-1 rounded-full whitespace-nowrap md:self-auto">{item.date}</span>
     </div>
@@ -604,7 +604,8 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
           <section id="education" className="scroll-mt-24">
             <SectionHeader title="Education" />
             <div className="max-w-4xl mx-auto">
-              <div className="border-l-2 border-black/10">
+              <div className="relative border-l-2 border-transparent">
+                <div className="absolute -left-[2px] w-[2px] bg-black/10 top-3 bottom-0 z-0" />
                 {resumeData.filter(i => i.category === 'Education').map((item) => (
                   <EducationItem key={item.id} item={item} />
                 ))}
@@ -616,7 +617,8 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
           <section id="experience" className="scroll-mt-24 mt-48">
             <SectionHeader title="Experience" />
             <div className="max-w-4xl mx-auto">
-              <div className="border-l-2 border-black/10">
+              <div className="relative border-l-2 border-transparent">
+                <div className="absolute -left-[2px] w-[2px] bg-black/10 top-3 bottom-0 z-0" />
                 {resumeData.filter(i => i.category === 'Experience' && i.id !== 'about-me').map((item) => (
                   <ExperienceItem key={item.id} item={item} />
                 ))}
@@ -637,7 +639,8 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
           <section id="involvements" className="scroll-mt-24">
             <SectionHeader title="Involvements" />
             <div className="max-w-4xl mx-auto">
-              <div className="border-l-2 border-black/10">
+              <div className="relative border-l-2 border-transparent">
+                <div className="absolute -left-[2px] w-[2px] bg-black/10 top-3 bottom-0 z-0" />
                 {resumeData.filter(i => i.category === 'Involvements').map((item) => (
                   <ExperienceItem key={item.id} item={item} />
                 ))}
