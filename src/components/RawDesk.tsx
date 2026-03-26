@@ -221,7 +221,7 @@ export default function InteractiveDesk({
     let loadCompleteTimeoutId: ReturnType<typeof setTimeout> | null = null;
     let didNotifyLoadComplete = false;
     let lastCoverInteractionAt = 0;
-    const COVER_WARMUP_IDLE_MS = 450;
+    const COVER_WARMUP_IDLE_MS = 75;
 
     manager.onProgress = (url, itemsLoaded, itemsTotal) => {
       if (onLoadProgress) onLoadProgress(Math.round((itemsLoaded / itemsTotal) * 100));
@@ -293,7 +293,7 @@ export default function InteractiveDesk({
           warmupIdleId = window.requestIdleCallback(() => {
             warmupIdleId = null;
             requestWarmup();
-          }, { timeout: 1500 });
+          }, { timeout: 250 });
         } else {
           warmupTimeoutId = setTimeout(() => {
             warmupTimeoutId = null;

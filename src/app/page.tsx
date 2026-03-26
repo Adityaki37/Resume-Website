@@ -54,9 +54,9 @@ export default function Home() {
     const startPreload = () => setShouldPreloadDesktopScene(true);
 
     if ('requestIdleCallback' in window) {
-      idleId = window.requestIdleCallback(startPreload, { timeout: 1500 });
+      idleId = window.requestIdleCallback(startPreload, { timeout: 250 });
     } else {
-      timeoutId = setTimeout(startPreload, 900);
+      timeoutId = setTimeout(startPreload, 120);
     }
 
     return () => {
