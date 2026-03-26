@@ -123,7 +123,7 @@ export default function BlogPage() {
               Fireboy and Watergirl AI
             </h1>
             <p className="mt-6 max-w-3xl text-base font-medium leading-8 text-black/60 md:text-lg">
-              Watch the video to see where the AI is currently at and/or read the build log to see my progress. Note: The visual overlay and reward log are off in the video due to it being a demonstration of a replay rather than a live run.
+              Watch the video to see where the AI is currently at and/or read the build log to see my progress.
             </p>
           </div>
 
@@ -158,7 +158,7 @@ export default function BlogPage() {
               <div className="aspect-video overflow-hidden rounded-[1.5rem] bg-black">
                 <iframe
                   className="h-full w-full"
-                  src="https://www.youtube.com/embed/IgyvnI8UbjY"
+                  src="https://www.youtube.com/embed/AUQU2NgpSJU"
                   title="Fireboy and Watergirl AI video demonstration"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   referrerPolicy="strict-origin-when-cross-origin"
