@@ -115,7 +115,7 @@ export default function BlogPage() {
             </p>
 
             <p className="text-base leading-8 md:text-lg md:leading-9 mb-8">
-              Thought this was interesting and decided that it was something I could look deeper into. As mentioned all of the other big robot companies seemed to use the quest 3 or Apple Vision Pro. The only one that I found to be doing something different was Unitree who had recently, in the past month or two, created a vest that people could wear called embodied avatar that could mimic a persons movement but not their hands. The only other ways for teleop I was able to find were things like Xsens motion capture which is incredibly time consuming, and one of the ways Detroit become human was made. Also later on discovered Manus for hand tracking.
+              Thought this was interesting and decided that it was something I could look deeper into. As mentioned all of the other big robot companies seemed to use the quest 3 or Apple Vision Pro. The only one that I found to be doing something different was Unitree who had recently, in the past month or two, created a vest that people could wear called embodied avatar that could mimic a persons movement but not their hands. The only other ways for teleop I was able to find were things like Xsens motion capture which is incredibly time consuming, and one of the ways Detroit become human was made. Also discovered Manus later on for hand tracking.
             </p>
           </div>
         </article>
