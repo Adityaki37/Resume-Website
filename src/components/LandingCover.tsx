@@ -111,7 +111,7 @@ const SectionHeader = ({ title }: { title: string }) => (
 
 const PROJECT_CARD_LINKS: Record<string, { href: string; external?: boolean }> = {
   'hephasbot': { href: 'https://hephasbot.com', external: true },
-  'fireboy-watergirl': { href: '/blog' },
+  'fireboy-watergirl': { href: '/fireboy' },
 };
 
 const ProjectCard = ({ item }: { item: any }) => {

@@ -179,7 +179,7 @@ export default function InfoPanel({ selectedId, previewId, onClose }: InfoPanelP
 
         {item?.id === 'fireboy-watergirl' && (
           <Link
-            href="/blog"
+            href="/fireboy"
             className="inline-flex items-center w-full md:w-auto justify-center md:justify-start px-6 py-3 bg-[#0c0c0c] border border-[#d0d0cc] rounded-xl text-sm font-semibold text-[#fffffe] hover:bg-[#2e2e2c] transition-all shadow-[0_4px_12px_rgba(0,0,0,0.1)] group"
           >
             Visit Website

@@ -4,58 +4,6 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { memo } from 'react';
 
-const journalEntries = [
-  {
-    day: 'Day 1',
-    paragraphs: [
-      'I set out to create the Fireboy & Watergirl AI. Since it was a Flash game, I was able to find the game\'s .swf files and get it running through Ruffle. For the model, I used Stable-Baselines3 with PPO on top of the OpenAI Gymnasium framework.',
-      'I spent the rest of the day setting up the automation pipeline and the model itself. The initial rewards were based on gem proximity, gem collection, door proximity, and level completion, while the penalties were based on time spent and death.',
-      'It was able to collect gems in under 50 episodes. However, it only seemed to consistently collect the red gem and not the blue gem.',
-    ],
-  },
-  {
-    day: 'Day 2',
-    paragraphs: [
-      'I let the AI run overnight, and there were several cases where it spent more than 20 minutes without going for any gems. That made me think the time penalty was too small and the gem reward was too weak. However, none of the reward tweaks seemed to work.',
-      'I decided I needed a way to test multiple models with different variables in parallel, so I built run_parallel_training.py. I also used AutoHotkey so multiple Ruffle windows could stay open and receive their own keyboard and mouse inputs without interfering with one another.',
-      'I also added an exploration feature that rewarded the AI for visiting new x-y coordinates during a run. It still did not work reliably.',
-      'I thought the model might benefit from recognizing more environmental features like buttons, hazards, and barriers, so I added support for those and spent time debugging the OpenCV pipeline and building a visual overlay to make sure the detections were correct.',
-    ],
-  },
-  {
-    day: 'Day 3',
-    paragraphs: [
-      'I let the AI run overnight, and it turned out that all of the models only collected the red gem while Watergirl kept falling behind. I decided that I needed to add more targeted rewards and penalties. Here are some of the changes I made:',
-    ],
-    bullets: [
-      'Made the time penalty become exponential after one minute',
-      'Added both a proximity reward and a direct reward for Watergirl entering water',
-      'Added alternating gem rewards so Watergirl would be rewarded much more strongly for moving toward her gem once Fireboy had already collected his',
-    ],
-    paragraphsAfterBullets: [
-      'None of those changes seemed to solve the problem. Fireboy kept getting his gem, but Watergirl was still behind, which led me to create a setup where Fireboy stopped moving and only Watergirl moved. That was when I started noticing strange behaviors, like Watergirl repeatedly jumping in place and moving back and forth.',
-      'To better understand this I added a reward log to the visual overlay to debug exactly which rewards and penalties were being triggered in real time. It turned out that Watergirl was not being tracked consistently, and by jumping up and down or moving back and forth she could briefly become null, which caused the system to reset and accidentally reward that behavior.',
-      'I fixed that problem and decided to run another parallelized setup overnight to see how it performed the next day.',
-    ],
-  },
-  {
-    day: 'Day 4',
-    paragraphs: [
-      'It still did not work, so I tried a number of different approaches. One of them was scattershot tuning, where I would give a model a low and high range for a variable and run ten instances of it for 35 episodes each to see which settings performed best. Eventually, I realized that instead of manually running multiple scattershots, I could build a script called recursive_reward_search.py that automatically tweaked variables across multiple rounds and changed what it focused on each time in order to search for the best setup. However, neither of those approaches solved the core issue.',
-      'I ended up watching replays through replay_episode.py and realized that the movement itself was off. Whenever Watergirl attempted a diagonal jump, she would begin the jump but then fall straight down or drift the other way in the middle. This was happening because the model was sending inputs so quickly that it struggled to commit to a risky jump long enough to learn how to clear the fire hazard properly.',
-      'Because of that, I changed the diagonal jump logic so the input would be held for 1.5 seconds, and that was the breakthrough. Once it finally started working, I left a recursive search script running overnight to try to find the best-performing model.',
-    ],
-  },
-  {
-    day: 'Day 5',
-    paragraphs: [
-      'The recursive search finally started producing models that could collect both gems without stalling. That was a huge step forward. However, it still could not do so reliably.',
-      'At first, I thought the issue was simply that the models had not trained long enough, so I tried training different ones for anywhere from 100 to 1,000 episodes. None of them ever became consistently reliable.',
-      'That was the point where I realized I would probably need imitation learning to make the behavior stable. I created review_good_episodes.py so I could review successful episodes and select them to be used for training.',
-    ],
-  },
-];
-
 const arrowPaths = [
   'M15 50 L 85 50 L 65 35 M 85 50 L 65 65',
   'M10 10 Q 50 90 90 10 M 70 30 L 90 10 L 70 5',
@@ -88,8 +36,9 @@ HandDrawnArrow.displayName = 'HandDrawnArrow';
 
 export default function BlogPage() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-white text-black">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    <main className="relative min-h-screen bg-white text-black selection:bg-black/10">
+      {/* Background Pattern */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:60px_60px]" />
         {backgroundArrows.map((arrow, index) => (
           <div
@@ -107,131 +56,69 @@ export default function BlogPage() {
         ))}
       </div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-6 py-8 md:px-12 md:py-10">
+      <div className="relative z-10 mx-auto max-w-3xl px-6 py-8 md:px-12 md:py-16">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/80 px-4 py-2 text-sm font-semibold text-black/70 backdrop-blur-md transition-colors hover:border-black/20 hover:text-black"
+          className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/80 px-4 py-2 text-sm font-semibold text-black/70 backdrop-blur-md transition-all hover:border-black/20 hover:text-black hover:-translate-x-1"
         >
           <ArrowLeft className="h-4 w-4" />
           Back To Portfolio
         </Link>
 
-        <section className="grid grid-cols-1 gap-10 pt-12 md:grid-cols-[minmax(0,1.35fr)_360px] md:items-end">
-          <div>
-            <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.28em] text-black/40">Project Journal</p>
-            <h1 className="max-w-4xl text-5xl font-black uppercase italic leading-[0.88] tracking-tighter md:text-7xl">
-              Fireboy and Watergirl AI
+        <article className="mt-16 md:mt-24">
+          <header className="mb-14 border-b border-black/5 pb-10">
+            <h1 className="text-4xl font-black tracking-tight md:text-5xl lg:text-5xl text-[#0c0c0c] leading-tight">
+              Musings about teleoperation
             </h1>
-            <p className="mt-6 max-w-3xl text-base font-medium leading-8 text-black/60 md:text-lg">
-              Watch the video to see where the AI is currently at and/or read the build log to see my progress.
+            <div className="mt-8 flex items-center gap-4 text-sm font-medium text-black/40 uppercase tracking-widest">
+              <span>Dec 24 2025</span>
+              <span className="h-1 w-1 rounded-full bg-black/20" />
+              <span>Aditya Induri</span>
+            </div>
+          </header>
+
+          <div className="text-[#2e2e2c]">
+            <p className="text-base leading-8 md:text-lg md:leading-9 mb-8">
+              Saw a video of 1X on WSJ. Knew about robots before, had seen companies like Figure, Unitree, and Tesla Optimus, but this was my first time seeing them do household tasks. While I could see the potential, I came away unimpressed from how it loaded the dishwasher. Specifically, the fact that even with it being teleoperated it wasn&rsquo;t able to close the dishwasher in one motion. Rather they had to design the house around the demo considering a lot of dishwashers, including mine, don&rsquo;t stay in a middle position and are either fully up or fully down.
+            </p>
+
+            <p className="text-base leading-8 md:text-lg md:leading-9 mb-8">
+              This video also showed me how companies thought of controlling robots in two ways. The first was teleoperation where a human would control the robot. This was mostly thought of as in interim solution which was used to collect data. On the other hand, the ultimate goal they were aiming for was an AI where they wanted the robot to move by itself. This was where most companies seemed to focus their investments.
+            </p>
+
+            <p className="text-base leading-8 md:text-lg md:leading-9 mb-8">
+              To me this seemed rushed. While I understood the focus on AI, I believed it would take too long to get a truly useable model. For instance, think of all the different home layouts that exist, the different types of door knobs and then the training required to get a robot to even open the door. Once you wrap your head around that think of 100x the amount of simple tasks like that which have a bunch of variations such as the type of dryer you use and the different settings it has. Then think of more complex tasks such as doing a full on deep clean of your bathroom, vacuuming, dusting, lugging that vacuum up the stairs, making sure your feet are clean if you were using water to clean the bathrooms, etc. Even just looking at home tasks it felt like it would take a while for these models to get up to pace. It seems like this is something 1X considered as well given how they employed teleoperators and had a system where people who initially buy 1X can use a schedule system to prebook teleoperators to do tasks.
+            </p>
+
+            <p className="text-base leading-8 md:text-lg md:leading-9 mb-8">
+              This made me think of creating a business that supplements the gap of teleoperators and the extra costs that may have in the US. There&rsquo;s already businesses centered around house maids, such as Pronto which is essentially like an Uber for cleaning in India. Can acquire a business like that, if not build a much smaller scale one with 10 people who are trained to teleoperate and run a 24/7 teleoperation system for other robotics companies. The company would gain revenue both through providing the teleoperation service and through selling the data gained to companies for training. Was reassured that this was a pretty good model by looking at companies like Scale AI which is essentially a data labeling company where cheap labor in the Philippines labels things that companies can use to train AI. Looked more into the founder Alexander Wang and how he grew the business and saw that he was a pretty good fundraiser. Essentially got a lot of money to grow the business, got in the right circles to be the preferred vendor to the AI companies, etc. Probably is a viable startup until AI can replace basic human tasks except for the risk factor that funding and getting in the right circles with the right customers is necessary. Also found out that countries like Nepal have 27% of their GDP generated through remittances which is money pumped back from foreign countries which is just insane. Having these robots means people can just teleoperate them from home for tasks even going beyond cleaning to factory and construction work which is also physically better for them.
+            </p>
+
+            <p className="text-base leading-8 md:text-lg md:leading-9 mb-8">
+              Diving deeper into this, even if those tasks become automated and are something AI can take over there&rsquo;s just too many specialized tasks where there isn&rsquo;t enough data to train models. For instance, repairing wind turbines, repairing a specific elevator brand that&rsquo;s not common, etc. There&rsquo;s hardly a chance those will be automated even if others are. That made me think of a possibility of the future where there&rsquo;s not a lot of technicians and you want to use them as much as possible. However, travel is essentially a quarter of their time making it not very efficient. To solve this you would use a self driving car that has a robot in it that delivers it to a specific location. From there a technician teleoperates the robot to complete the necessary task.
+            </p>
+
+            <p className="text-base leading-8 md:text-lg md:leading-9 mb-8">
+              If this is the future, a software only business centered around management and employee allocation and oversight could be beneficial. For both instances, you could imagine where there would be a company in charge of a certain number of people and would need to decide who gets to teleoperate what robot and has to assign employees. Additionally, the manager would have to have oversight of that employee, step in if anything goes wrong etc. they would have to do all of this in a secure, enterprise environment, something a lot of companies currently pay extra for. Can design a platform that does this which is essentially like Citrix, which essentially does all of this but for windows desktops&hellip; was sold for a couple billion dollars so is a decent model to work off of. Even considering a world where AI does most of the tasks this still pays off because of a) the incredibly niche tasks will be hard to get data on and automate and b) you would need someone to manage a cluster of ai&rsquo;s. For instance you could see someone using these platforms to manage a group of AIs&rsquo; by viewing its video and reasoning outputs and stepping in whenever the AI has trouble. In either future this app works out.
+            </p>
+
+            <p className="text-base leading-8 md:text-lg md:leading-9 mb-8">
+              Another one could be a Taskhuman for teleop, someone would request a certain activity, someone else could hop on and do it. We wouldn&rsquo;t need to invest in the capex for vr headsets etc. However, a risk of both of these software apps are that we may be too early to the game. I personally don&rsquo;t think so given how many yc startups only got traction years after being in the accelerator but being too early still is a viable concern and risk to keep in mind.
+            </p>
+
+            <div className="flex justify-center items-center my-12 text-black/20 font-bold overflow-hidden select-none whitespace-nowrap opacity-60">
+              ------------------------------------------------------------------------------------------------
+            </div>
+
+            <p className="text-base leading-8 md:text-lg md:leading-9 mb-8">
+              Was rewatching 1X&rsquo;s video and some other ones they put out and noticed the difference between their teleop and true human mimicry. What really solidified my thesis on this was the equipment they used. It turned out they were using a meta quest 3, and so were all of their robot competitors I later learned. While it&rsquo;s not a bad headset even I as an incredibly casual vr person who just did research on them knew it wasn&rsquo;t the best. Rather the leading technology in body tracking was steam base stations and it seemed incredibly odd to me that none of the players decided to go all out on making teleoperation as accurate as possible.
+            </p>
+
+            <p className="text-base leading-8 md:text-lg md:leading-9 mb-8">
+              Thought this was interesting and decided that it was something I could look deeper into. As mentioned all of the other big robot companies seemed to use the quest 3 or Apple Vision Pro. The only one that I found to be doing something different was Unitree who had recently, in the past month or two, created a vest that people could wear called embodied avatar that could mimic a persons movement but not their hands. The only other ways for teleop I was able to find were things like Xsens motion capture which is incredibly time consuming, and one of the ways Detroit become human was made. Also later on discovered Manus for hand tracking.
             </p>
           </div>
-
-          <div className="rounded-[2rem] border border-black/5 bg-[#f4f4f2]/80 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.08)] backdrop-blur-md">
-            <div className="mb-6 flex items-center justify-between border-b border-black/6 pb-4">
-              <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-black/35">Build Summary</span>
-              <div className="h-px w-10 bg-black/10" />
-            </div>
-            <div className="space-y-5">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-black/35">Framework</p>
-                <p className="mt-2 text-xl font-black tracking-tight">Gymnasium + PPO</p>
-              </div>
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-black/35">Focus</p>
-                <p className="mt-2 text-sm font-medium leading-7 text-black/65">
-                  Multi-character cooperation, reward design, environment instrumentation, and parallel experimentation.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="mt-20">
-          <div className="mb-12 flex flex-col items-center text-center">
-            <h2 className="mb-4 text-4xl font-black uppercase italic tracking-tighter md:text-5xl">Video Demonstration</h2>
-            <div className="h-px w-12 bg-black/20" />
-          </div>
-
-          <div className="mx-auto max-w-5xl">
-            <div className="overflow-hidden rounded-[2rem] border border-black/5 bg-[#f4f4f2]/80 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.08)] backdrop-blur-md md:p-4">
-              <div className="aspect-video overflow-hidden rounded-[1.5rem] bg-black">
-                <iframe
-                  className="h-full w-full"
-                  src="https://www.youtube.com/embed/AUQU2NgpSJU"
-                  title="Fireboy and Watergirl AI video demonstration"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  allowFullScreen
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="mt-20">
-          <div className="mb-12 flex flex-col items-center text-center">
-            <h2 className="mb-4 text-4xl font-black uppercase italic tracking-tighter md:text-5xl">Build Log</h2>
-            <div className="h-px w-12 bg-black/20" />
-          </div>
-
-          <div className="relative mx-auto max-w-5xl">
-            <div className="absolute bottom-0 left-[9px] top-4 w-px bg-black/10 md:left-[11px] md:top-5" />
-            {journalEntries.map((entry, index) => (
-              <article
-                key={entry.day}
-                className="relative pl-10 pb-10 md:pl-12 md:pb-14"
-              >
-                <div className="absolute left-0 top-1.5 h-5 w-5 rounded-full border-2 border-black bg-white md:left-0 md:top-2 md:h-6 md:w-6" />
-                <div className="space-y-5">
-                  <div className="flex min-h-8 flex-col justify-center gap-3 md:min-h-10 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <h3 className="text-3xl font-black tracking-tight md:text-4xl">{entry.day}</h3>
-                    </div>
-                  </div>
-
-                  <div className="space-y-5">
-                    {entry.paragraphs && (
-                        <div className="space-y-4">
-                          {entry.paragraphs.map((paragraph) => (
-                            <p key={paragraph} className="text-sm font-medium leading-7 text-black/68 md:text-base md:leading-8">
-                              {paragraph}
-                            </p>
-                          ))}
-                        </div>
-                      )}
-
-                      {entry.bullets && (
-                        <ul className="space-y-3">
-                          {entry.bullets.map((bullet) => (
-                            <li
-                              key={bullet}
-                              className="grid grid-cols-[0.375rem_minmax(0,1fr)] items-start gap-x-3 text-sm font-medium leading-7 text-black/68 md:text-base md:leading-8"
-                            >
-                              <span className="flex h-7 items-center justify-center md:h-8">
-                                <span className="h-1.5 w-1.5 rounded-full bg-black" />
-                              </span>
-                              <span className="min-w-0">{bullet}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-
-                      {entry.paragraphsAfterBullets && (
-                        <div className="space-y-4">
-                          {entry.paragraphsAfterBullets.map((paragraph) => (
-                            <p key={paragraph} className="text-sm font-medium leading-7 text-black/68 md:text-base md:leading-8">
-                              {paragraph}
-                            </p>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-              </article>
-            ))}
-          </div>
-        </section>
+        </article>
       </div>
     </main>
   );
