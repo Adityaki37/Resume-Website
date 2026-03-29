@@ -161,52 +161,47 @@ export default function Home() {
                       className="relative w-full h-[90vh] max-w-5xl bg-white/10 backdrop-blur-2xl rounded-3xl overflow-hidden shadow-[0_32px_128px_rgba(0,0,0,0.5)] border border-white/20 flex flex-col"
                     >
                       <div className="px-8 py-4 bg-white/10 backdrop-blur-md border-b border-white/10 flex items-center justify-between">
-                        <h2 className="text-white font-black tracking-tight text-xl drop-shadow-sm">Induri, Aditya Resume.pdf</h2>
-                        <button 
-                          onClick={() => setShowResume(false)}
-                          className="p-2 hover:bg-white/10 rounded-xl transition-colors text-white/70 hover:text-white cursor-pointer"
-                        >
-                          <X className="w-6 h-6" />
-                        </button>
+                        <h2 className="text-white font-black tracking-tight text-xl drop-shadow-sm truncate mr-4">Induri, Aditya Resume.pdf</h2>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href="/Resume.pdf"
+                            download="Aditya_Induri_Resume.pdf"
+                            className="px-4 py-2 text-sm font-semibold bg-white text-black hover:bg-white/90 rounded-xl transition-colors shadow-sm hidden sm:block"
+                          >
+                            Download
+                          </a>
+                          <a
+                            href="/Resume.pdf"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 text-sm font-semibold border border-white/20 text-white hover:bg-white/10 rounded-xl transition-colors sm:hidden"
+                          >
+                            Open
+                          </a>
+                          <button 
+                            onClick={() => setShowResume(false)}
+                            className="p-2 hover:bg-white/10 rounded-xl transition-colors text-white/70 hover:text-white cursor-pointer"
+                          >
+                            <X className="w-6 h-6" />
+                          </button>
+                        </div>
                       </div>
                       <div 
-                        className="flex-1 bg-white/5 relative overflow-hidden rounded-b-3xl"
+                        className="flex-1 bg-[#525659] relative overflow-hidden rounded-b-3xl overscroll-none"
                         style={{
                           transform: 'translateZ(0)',
-                          WebkitTransform: 'translateZ(0)',
-                          backfaceVisibility: 'hidden',
-                          WebkitBackfaceVisibility: 'hidden'
+                          WebkitTransform: 'translateZ(0)'
                         }}
                       >
-                        <object
-                          data="/Resume.pdf#view=FitH"
-                          type="application/pdf"
-                          className="h-full w-full block"
-                          aria-label="Resume Viewer"
-                        >
-                          <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center text-white">
-                            <p className="max-w-md text-sm text-white/80">
-                              Your browser could not display the PDF inline. You can still open or download it directly.
-                            </p>
-                            <div className="flex flex-wrap items-center justify-center gap-3">
-                              <a
-                                href="/Resume.pdf"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-white/90"
-                              >
-                                Open Resume
-                              </a>
-                              <a
-                                href="/Resume.pdf"
-                                download
-                                className="rounded-xl border border-white/25 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10"
-                              >
-                                Download PDF
-                              </a>
-                            </div>
-                          </div>
-                        </object>
+                        {/* 
+                          Using iframe instead of object for Safari compatibility + overscroll-none 
+                          to prevent the momentum scrolling jitter bounds issue 
+                        */}
+                        <iframe
+                          src="/Resume.pdf#toolbar=0&navpanes=0&scrollbar=0&view=FitH"
+                          className="h-full w-full block border-none overscroll-none bg-transparent"
+                          title="Resume Viewer"
+                        />
                       </div>
                     </motion.div>
                   </motion.div>
