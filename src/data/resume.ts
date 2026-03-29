@@ -101,7 +101,7 @@ export const resumeData: ResumeItem[] = [
     zoomTarget: [-1, 2.5, -3],
     zoomDistance: 3,
     previewConfig: {
-      rotation: [0, 90, 0],
+      rotation: [0, 0, 0],
       scale: 1,
       rotationSpeed: 0.005,
       autoRotate: true,
