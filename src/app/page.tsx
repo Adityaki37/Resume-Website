@@ -169,11 +169,19 @@ export default function Home() {
                           <X className="w-6 h-6" />
                         </button>
                       </div>
-                      <div className="flex-1 bg-white/5 relative">
+                      <div 
+                        className="flex-1 bg-white/5 relative overflow-hidden rounded-b-3xl"
+                        style={{
+                          transform: 'translateZ(0)',
+                          WebkitTransform: 'translateZ(0)',
+                          backfaceVisibility: 'hidden',
+                          WebkitBackfaceVisibility: 'hidden'
+                        }}
+                      >
                         <object
                           data="/Resume.pdf#view=FitH"
                           type="application/pdf"
-                          className="h-full w-full"
+                          className="h-full w-full block"
                           aria-label="Resume Viewer"
                         >
                           <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center text-white">
