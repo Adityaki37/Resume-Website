@@ -161,7 +161,7 @@ export default function Home() {
                       className="relative w-full h-[90vh] max-w-5xl bg-white/10 backdrop-blur-2xl rounded-3xl overflow-hidden shadow-[0_32px_128px_rgba(0,0,0,0.5)] border border-white/20 flex flex-col"
                     >
                       <div className="px-8 py-4 bg-white/10 backdrop-blur-md border-b border-white/10 flex items-center justify-between">
-                        <h2 className="text-white font-black tracking-tight text-xl drop-shadow-sm">Resume.pdf</h2>
+                        <h2 className="text-white font-black tracking-tight text-xl drop-shadow-sm">Induri, Aditya Resume.pdf</h2>
                         <button 
                           onClick={() => setShowResume(false)}
                           className="p-2 hover:bg-white/10 rounded-xl transition-colors text-white/70 hover:text-white cursor-pointer"
