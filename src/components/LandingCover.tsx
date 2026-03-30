@@ -413,7 +413,7 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
               >
-                Glad your here! To learn more about me click enter for a fun experience or scroll through for a traditional one.
+                Glad you’re here! To learn more about me click enter for a fun experience or scroll through for a traditional one.
               </motion.p>
 
               <div className="flex flex-col items-start gap-12">
