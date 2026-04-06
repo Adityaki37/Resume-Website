@@ -54,6 +54,29 @@ const journalEntries = [
       'That was the point where I realized I would probably need imitation learning to make the behavior stable. I created review_good_episodes.py so I could review successful episodes and select them to be used for training.',
     ],
   },
+  {
+    day: 'Day 6',
+    paragraphs: [
+      'There ended up being a large number of episodes, so I made a script that sorted episodes with a certain number of gems or that progressed to a certain area into an archive for review. Training a model with this worked, but not at the pace I wanted.',
+      'I decided to switch things up. Previously, the model was based only on positional information for things like the characters and level objects, so I decided to make different versions. I created a vision-based version that applied grayscale to everything except important parts that needed color distinctions, like gems and hazards, and a hybrid version that combined both vision and positional information.',
+    ],
+  },
+  {
+    day: 'Day 7',
+    paragraphs: [
+      'I left them training overnight, but there didn\'t seem to be much of a difference. Even though I didn\'t want to use human data in the project, I thought it might still be useful to see whether the model could actually reach the end. That led me to record human data and train the model on it.',
+      'Surprisingly, it did not perform better at all. It became too afraid of dying from the green hazard above it, so instead of going up, it tried to replicate what I had done on the upper levels while staying on the lower level.',
+      'This taught me that I might need to split the problem into segments: train a model until it gets two gems, use imitation learning on that progress, train it until it clears the green hazard, and then repeat. That led me to create a way to train one model across parallel instances so it could gather data faster with train_parallel_model.py. In the meantime, I also thought training might benefit from running faster, so I looked through Ruffle, found a way to speed up the game, and applied it.',
+    ],
+  },
+  {
+    day: 'Day 8',
+    paragraphs: [
+      'Speeding up the game had ripple effects on the OpenCV pipeline, which struggled to keep up. I spent some time trying to fix that before realizing it would be difficult to visually track the characters accurately at that pace. That led me to look for a way into the source code, and I eventually found that with JPEXS decompiler I could get the code inside the .swf file.',
+      'After using that, I implemented actual position-based tracking. That introduced a couple of bugs in the overlay, which I worked around. Once I realized we had access to the source code, I decided to choose an easier level so I could test whether the models were actually capable of completing any level at all.',
+      'I picked another level, and the model was able to breeze through it, collect all the gems, and reach the door. The visual and hybrid models seemed to get to that point faster, although the position-based model could still do it as well. However, the characters were having trouble staying still at the door, which was required to actually complete the level.',
+    ],
+  },
 ];
 
 const arrowPaths = [
