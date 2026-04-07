@@ -176,17 +176,38 @@ export default function BlogPage() {
             <div className="h-px w-12 bg-black/20" />
           </div>
 
-          <div className="mx-auto max-w-5xl">
-            <div className="overflow-hidden rounded-[2rem] border border-black/5 bg-[#f4f4f2]/80 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.08)] backdrop-blur-md md:p-4">
-              <div className="aspect-video overflow-hidden rounded-[1.5rem] bg-black">
-                <iframe
-                  className="h-full w-full"
-                  src="https://www.youtube.com/embed/AUQU2NgpSJU"
-                  title="Fireboy and Watergirl AI video demonstration"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  allowFullScreen
-                />
+          <div className="mx-auto max-w-6xl">
+            <div className="grid gap-6 md:grid-cols-2">
+              <div>
+                <p className="mb-3 text-base font-black uppercase tracking-tight text-black md:text-lg">
+                  New model and new level
+                </p>
+                <div className="aspect-video overflow-hidden rounded-[1.5rem] bg-black">
+                  <iframe
+                    className="h-full w-full"
+                    src="https://www.youtube.com/embed/AcjT-wNrHLk"
+                    title="Fireboy and Watergirl AI latest video demonstration"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                  />
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-3 text-base font-black uppercase tracking-tight text-black md:text-lg">
+                  Old model and old level
+                </p>
+                <div className="aspect-video overflow-hidden rounded-[1.5rem] bg-black">
+                  <iframe
+                    className="h-full w-full"
+                    src="https://www.youtube.com/embed/AUQU2NgpSJU"
+                    title="Fireboy and Watergirl AI original video demonstration"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                  />
+                </div>
               </div>
             </div>
           </div>
