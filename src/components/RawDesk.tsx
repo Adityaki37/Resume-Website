@@ -14,7 +14,7 @@ interface InteractiveDeskProps {
   onBack?: () => void;
   onResume?: () => void;
   onLoadProgress?: (progress: number) => void;
-  onLoadComplete?: () => void;
+  onScenePhaseChange?: (phase: 'loading-assets' | 'warming' | 'ready') => void;
   showCover?: boolean;
 }
 
@@ -22,7 +22,7 @@ interface InteractiveDeskProps {
 
 export default function InteractiveDesk({
   selectedId, onSelect, onHover, onBack, onResume,
-  onLoadProgress, onLoadComplete, showCover
+  onLoadProgress, onScenePhaseChange, showCover
 }: InteractiveDeskProps) {
   const ACTIVE_PIXEL_RATIO_CAP = 1.5;
   const COVER_PIXEL_RATIO_CAP = 1.0;
@@ -218,10 +218,11 @@ export default function InteractiveDesk({
     let warmupTimeoutId: ReturnType<typeof setTimeout> | null = null;
     let warmupIdleId: number | null = null;
     let warmupCheckTimeoutId: ReturnType<typeof setTimeout> | null = null;
-    let loadCompleteTimeoutId: ReturnType<typeof setTimeout> | null = null;
-    let didNotifyLoadComplete = false;
+    let isDisposed = false;
+    let warmupPromise: Promise<void> | null = null;
     let lastCoverInteractionAt = 0;
     const COVER_WARMUP_IDLE_MS = 75;
+    onScenePhaseChange?.('loading-assets');
 
     manager.onProgress = (url, itemsLoaded, itemsTotal) => {
       if (onLoadProgress) onLoadProgress(Math.round((itemsLoaded / itemsTotal) * 100));
@@ -242,23 +243,33 @@ export default function InteractiveDesk({
       }
     };
 
-    const notifyLoadComplete = () => {
-      if (didNotifyLoadComplete) return;
-      didNotifyLoadComplete = true;
-      if (loadCompleteTimeoutId !== null) {
-        clearTimeout(loadCompleteTimeoutId);
-      }
-      loadCompleteTimeoutId = setTimeout(() => {
-        if (onLoadComplete) onLoadComplete();
-      }, 120);
-    };
-
-    const warmupScene = () => {
+    const warmupScene = async () => {
       if (!sceneLoadedRef.current || !needsWarmupRef.current) return;
-      renderer.render(scene, camera);
-      renderer.compile(scene, camera);
-      needsWarmupRef.current = false;
-      notifyLoadComplete();
+      if (warmupPromise) return warmupPromise;
+
+      onScenePhaseChange?.('warming');
+
+      warmupPromise = (async () => {
+        renderer.render(scene, camera);
+
+        try {
+          await renderer.compileAsync(scene, camera);
+        } catch {
+          renderer.compile(scene, camera);
+        }
+
+        if (isDisposed) {
+          return;
+        }
+
+        renderer.render(scene, camera);
+        needsWarmupRef.current = false;
+        onScenePhaseChange?.('ready');
+      })().finally(() => {
+        warmupPromise = null;
+      });
+
+      return warmupPromise;
     };
 
     const scheduleWarmupWhenSafe = () => {
@@ -267,7 +278,7 @@ export default function InteractiveDesk({
       clearWarmupSchedule();
 
       if (!showCoverRef.current) {
-        warmupScene();
+        void warmupScene();
         return;
       }
 
@@ -283,7 +294,7 @@ export default function InteractiveDesk({
           return;
         }
 
-        warmupScene();
+        void warmupScene();
       };
 
       warmupCheckTimeoutId = setTimeout(() => {
@@ -315,6 +326,7 @@ export default function InteractiveDesk({
     manager.onLoad = () => {
       sceneLoadedRef.current = true;
       needsWarmupRef.current = true;
+      onScenePhaseChange?.('warming');
       scheduleWarmupWhenSafe();
     };
 
@@ -1145,7 +1157,7 @@ export default function InteractiveDesk({
       if (!sceneLoadedRef.current) return;
 
       if (needsWarmupRef.current && !showCoverRef.current) {
-        warmupScene();
+        void warmupScene();
       }
 
       mixers.current.forEach(m => m.update(delta));
@@ -1227,15 +1239,13 @@ export default function InteractiveDesk({
     }
 
     return () => {
+      isDisposed = true;
       stopAnimation();
       if (hoverFrameId !== null) {
         cancelAnimationFrame(hoverFrameId);
         hoverFrameId = null;
       }
       clearWarmupSchedule();
-      if (loadCompleteTimeoutId !== null) {
-        clearTimeout(loadCompleteTimeoutId);
-      }
       pendingPointerPosition = null;
       renderFrameRef.current = null;
       startAnimationRef.current = null;

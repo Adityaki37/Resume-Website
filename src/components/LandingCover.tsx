@@ -303,11 +303,17 @@ const Navbar = ({ containerId }: { containerId: string }) => {
 
 interface LandingCoverProps {
   onStart: () => void;
-  isLoading: boolean;
+  scenePhase: 'idle' | 'importing' | 'loading-assets' | 'warming' | 'ready';
+  isEnterReady: boolean;
   loadingProgress: number;
 }
 
-export default function LandingCover({ onStart, isLoading, loadingProgress }: LandingCoverProps) {
+export default function LandingCover({
+  onStart,
+  scenePhase,
+  isEnterReady,
+  loadingProgress,
+}: LandingCoverProps) {
   const [isRippleActive, setIsRippleActive] = useState(false);
   const [ripplePos, setRipplePos] = useState({ x: 0, y: 0 });
   const isMobile = useIsMobile();
@@ -327,12 +333,12 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
 
   const canEnter = !RESTRICT_MOBILE_ACCESS || !isMobile;
   const showDesktopOnlyState = RESTRICT_MOBILE_ACCESS && isMobile;
-  const buttonLabel = isLoading
-      ? `Loading ${loadingProgress}%`
-      : 'Enter !';
+  const isWaitingForScene = !showDesktopOnlyState && !isEnterReady;
+  const buttonLabel =
+    scenePhase === 'ready' ? 'Enter !' : `Loading ${loadingProgress}%`;
 
   const handleStartInteraction = (e: React.MouseEvent) => {
-    if (isRippleActive || isLoading || !canEnter) return;
+    if (isRippleActive || isWaitingForScene || !canEnter) return;
     setRipplePos({ x: e.clientX, y: e.clientY });
     setIsRippleActive(true);
     setTimeout(() => {
@@ -420,29 +426,59 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
                 <motion.div className="flex flex-wrap items-center gap-6">
                   <motion.button
                     onClick={handleStartInteraction}
-                    disabled={isLoading}
-                    aria-disabled={isLoading || !canEnter}
-                    whileHover={isLoading || !canEnter ? {} : { scale: 1.05 }}
-                    whileTap={isLoading || !canEnter ? {} : { scale: 0.95 }}
+                    disabled={isWaitingForScene || !canEnter}
+                    aria-disabled={isWaitingForScene || !canEnter}
+                    whileHover={isWaitingForScene || !canEnter ? {} : { scale: 1.05 }}
+                    whileTap={isWaitingForScene || !canEnter ? {} : { scale: 0.95 }}
                     className={`group relative flex items-center justify-center gap-4 rounded-[40px] transition-all duration-500 shadow-2xl ${showDesktopOnlyState
                       ? 'w-full max-w-[20rem] px-4 py-4 bg-black text-white border-2 border-black shadow-black/20 cursor-not-allowed self-center sm:self-start'
-                      : isLoading
-                        ? 'px-16 py-8 bg-zinc-100 text-zinc-400 cursor-not-allowed border-2 border-zinc-200'
-                        : 'px-16 py-8 bg-black text-white border-2 border-black shadow-black/20'
+                      : isEnterReady
+                        ? 'h-[8rem] w-[24rem] max-w-full bg-black text-white border-2 border-black shadow-black/20'
+                        : 'h-[8rem] w-[24rem] max-w-full bg-zinc-100 text-zinc-400 cursor-not-allowed border-2 border-zinc-200'
                       }`}
                   >
-                    <div className={`flex items-center ${showDesktopOnlyState ? 'gap-3' : 'flex-col gap-2'}`}>
-                      {!showDesktopOnlyState && (
-                        <div className="relative">
-                          <span className={`font-black tracking-tighter text-4xl uppercase italic transition-all duration-500 text-center ${isLoading ? 'opacity-50' : 'opacity-100'}`}>
+                    <div className={`flex items-center ${showDesktopOnlyState ? 'gap-3' : 'h-full w-full justify-center px-10'}`}>
+                      {!showDesktopOnlyState && !isEnterReady && (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <span className="block whitespace-nowrap font-black tracking-tighter text-4xl leading-none uppercase italic text-center opacity-50">
                             {buttonLabel}
                           </span>
+                        </div>
+                      )}
 
-                          {!isLoading && canEnter && (
-                            <div className="absolute left-[calc(100%+1.5rem)] top-1/2 -translate-y-1/2 pointer-events-none">
-                              <HandDrawnArrow type={0} className="w-12 h-12 transition-all duration-300" style={{ opacity: 1 }} />
+                      {!showDesktopOnlyState && isEnterReady && (
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <div className="relative">
+                            <span className="block whitespace-nowrap font-black tracking-tighter text-4xl leading-none uppercase italic text-center">
+                              {buttonLabel}
+                            </span>
+
+                            <div className="absolute left-[calc(100%+1.5rem)] top-1/2 -translate-y-1/2 pointer-events-none h-12 w-12">
+                              <HandDrawnArrow
+                                type={0}
+                                className="h-12 w-12 transition-all duration-300"
+                                style={{ opacity: 1 }}
+                              />
                             </div>
-                          )}
+                          </div>
+
+                          <div className="flex items-center gap-2 whitespace-nowrap opacity-60">
+                            <Monitor className="h-4 w-4 shrink-0" />
+                            <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
+                              Use desktop for full experience
+                            </span>
+                          </div>
+
+                          <div className="w-[16rem]">
+                            <motion.span
+                              initial={false}
+                              animate={{
+                                scaleX: canEnter ? 1 : 0,
+                                opacity: canEnter ? 1 : 0,
+                              }}
+                              className="block h-1 w-full rounded-full bg-current origin-center"
+                            />
+                          </div>
                         </div>
                       )}
 
@@ -453,22 +489,7 @@ export default function LandingCover({ onStart, isLoading, loadingProgress }: La
                             Use desktop for full experience
                           </span>
                         </div>
-                      ) : !isLoading && (
-                        <div className={`flex items-center gap-2 ${showDesktopOnlyState ? 'opacity-100' : 'opacity-60'}`}>
-                          <Monitor className={showDesktopOnlyState ? 'w-5 h-5' : 'w-4 h-4'} />
-                          <span className={`${showDesktopOnlyState ? 'text-[11px] tracking-[0.22em]' : 'text-[10px] tracking-[0.2em]'} font-bold uppercase whitespace-nowrap`}>
-                            Use desktop for full experience
-                          </span>
-                        </div>
-                      )}
-
-                      {!isLoading && canEnter && (
-                        <motion.span
-                          initial={{ scaleX: 0 }}
-                          animate={{ scaleX: 1 }}
-                          className="h-1 w-full bg-current mt-1 rounded-full origin-left"
-                        />
-                      )}
+                      ) : null}
                     </div>
                   </motion.button>
                 </motion.div>

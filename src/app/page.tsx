@@ -10,15 +10,25 @@ import { X } from 'lucide-react';
 import { useIsMobile } from '@/lib/useIsMobile';
 
 const InteractiveDesk = dynamic(() => import('@/components/RawDesk'), { ssr: false });
+type DesktopScenePhase = 'idle' | 'importing' | 'loading-assets' | 'warming' | 'ready';
+
+const DESKTOP_SCENE_PHASE_ORDER: Record<DesktopScenePhase, number> = {
+  idle: 0,
+  importing: 1,
+  'loading-assets': 2,
+  warming: 3,
+  ready: 4,
+};
 
 export default function Home() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [showCover, setShowCover] = useState(true);
   const [showResume, setShowResume] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [desktopScenePhase, setDesktopScenePhase] = useState<DesktopScenePhase>('idle');
+  const [isEnterCtaReady, setIsEnterCtaReady] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
-  const [shouldPreloadDesktopScene, setShouldPreloadDesktopScene] = useState(false);
+  const [shouldMountDesktopScene, setShouldMountDesktopScene] = useState(false);
   const isMobile = useIsMobile();
 
   // Sync background state with browser history
@@ -43,15 +53,29 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (isMobile || !showCover) {
-      setShouldPreloadDesktopScene(false);
+    if (isMobile) {
       return;
     }
 
+    setShouldMountDesktopScene(true);
+
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     let idleId: number | null = null;
+    let cancelled = false;
 
-    const startPreload = () => setShouldPreloadDesktopScene(true);
+    const startPreload = () => {
+      if (cancelled) {
+        return;
+      }
+
+      setDesktopScenePhase((currentPhase) =>
+        currentPhase === 'idle' ? 'importing' : currentPhase
+      );
+
+      void import('@/components/RawDesk').catch((error) => {
+        console.error('Failed to preload desktop scene module.', error);
+      });
+    };
 
     if ('requestIdleCallback' in window) {
       idleId = window.requestIdleCallback(startPreload, { timeout: 250 });
@@ -60,6 +84,7 @@ export default function Home() {
     }
 
     return () => {
+      cancelled = true;
       if (idleId !== null && 'cancelIdleCallback' in window) {
         window.cancelIdleCallback(idleId);
       }
@@ -67,7 +92,22 @@ export default function Home() {
         clearTimeout(timeoutId);
       }
     };
-  }, [isMobile, showCover]);
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (desktopScenePhase !== 'ready') {
+      setIsEnterCtaReady(false);
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      setIsEnterCtaReady(true);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [desktopScenePhase]);
 
   const handleSelect = (id: string | null, pId: string | null = null) => {
     setSelectedId(id);
@@ -79,21 +119,31 @@ export default function Home() {
     setPreviewId(null);
   };
 
+  const updateDesktopScenePhase = useCallback((nextPhase: DesktopScenePhase) => {
+    setDesktopScenePhase((currentPhase) =>
+      DESKTOP_SCENE_PHASE_ORDER[nextPhase] > DESKTOP_SCENE_PHASE_ORDER[currentPhase]
+        ? nextPhase
+        : currentPhase
+    );
+  }, []);
+
   const handleLoadProgress = useCallback((progress: number) => {
     setLoadingProgress(progress);
-  }, []);
+    if (progress > 0) {
+      updateDesktopScenePhase('loading-assets');
+    }
+  }, [updateDesktopScenePhase]);
 
-  const handleLoadComplete = useCallback(() => {
-    setIsLoading(false);
-  }, []);
+  const handleScenePhaseChange = useCallback((nextPhase: DesktopScenePhase) => {
+    updateDesktopScenePhase(nextPhase);
+  }, [updateDesktopScenePhase]);
 
   const handleStart = useCallback(() => {
-    setShouldPreloadDesktopScene(true);
     setShowCover(false);
     window.history.pushState({ showScene: true }, '');
   }, []);
 
-  const shouldMountScene = isMobile ? !showCover : shouldPreloadDesktopScene || !showCover;
+  const shouldMountScene = isMobile ? !showCover : shouldMountDesktopScene || !showCover;
 
   return (
     <main className="relative h-screen w-full bg-[#D0D0CC] overflow-hidden font-sans selection:bg-pink-500/30 text-white">
@@ -102,7 +152,8 @@ export default function Home() {
           <LandingCover 
             key="cover" 
             onStart={handleStart} 
-            isLoading={isLoading}
+            scenePhase={desktopScenePhase}
+            isEnterReady={isEnterCtaReady}
             loadingProgress={loadingProgress}
           />
         )}
@@ -137,7 +188,7 @@ export default function Home() {
                   }}
                   onResume={() => setShowResume(true)}
                   onLoadProgress={handleLoadProgress}
-                  onLoadComplete={handleLoadComplete}
+                  onScenePhaseChange={handleScenePhaseChange}
                   showCover={showCover}
                 />
 
