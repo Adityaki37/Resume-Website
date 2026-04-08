@@ -132,7 +132,7 @@ export const resumeData: ResumeItem[] = [
   {
     id: 'morgan-stanley',
     title: 'Morgan Stanley',
-    interestTitle: 'Trading / Financial News',
+    interestTitle: 'Trading',
     category: 'Experience',
     subtitle: 'Risk Management Summer Analyst - Institutional Securities Group (ISG)',
     date: 'June 2025 - August 2025',
