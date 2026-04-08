@@ -327,7 +327,7 @@ export default function LandingCover({
             )
             .map((item) => item.interestTitle)
         )
-      ),
+      ).sort((a, b) => a.localeCompare(b)),
     []
   );
 
@@ -588,7 +588,7 @@ export default function LandingCover({
           {/* About Section */}
           <section id="about" className="pt-24 scroll-mt-24">
             <SectionHeader title="About" />
-            <div className="grid grid-cols-1 gap-16 items-start lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-12">
+            <div className="grid grid-cols-1 gap-16 lg:items-stretch lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-12">
               <div className="space-y-8">
                 <p className="text-3xl font-black italic text-black leading-tight tracking-tighter">
                   {landingPageAbout.headline}
@@ -599,7 +599,7 @@ export default function LandingCover({
                   ))}
                 </div>
               </div>
-              <div className="bg-zinc-50 rounded-3xl px-8 py-7 border border-black/5 flex flex-col gap-5 self-start max-w-[44rem] w-full">
+              <div className="bg-zinc-50 rounded-3xl px-8 py-7 border border-black/5 flex flex-col gap-5 h-full max-w-[44rem] w-full">
                 <div className="flex items-center gap-5">
                   <div className="w-14 h-14 rounded-full bg-black flex items-center justify-center text-white shrink-0">
                     <Heart className="w-7 h-7" />
