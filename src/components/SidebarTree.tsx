@@ -70,13 +70,13 @@ export default function SidebarTree({ selectedId, onSelect }: SidebarTreeProps) 
   const navigationOrder = useMemo(() => [
     'about-me',
     ...resumeData
+      .filter(item => item.category === 'Projects')
+      .map(item => item.id),
+    ...resumeData
       .filter(item => item.category === 'Education')
       .map(item => item.id),
     ...resumeData
       .filter(item => item.category === 'Experience' && item.id !== 'about-me')
-      .map(item => item.id),
-    ...resumeData
-      .filter(item => item.category === 'Projects')
       .map(item => item.id),
     'involvements',
   ], []);
@@ -118,7 +118,7 @@ export default function SidebarTree({ selectedId, onSelect }: SidebarTreeProps) 
     onSelect(navigationOrder[prevIndex]);
   };
 
-  const categories: Array<Exclude<ResumeCategory, 'Interests'>> = ['Education', 'Experience', 'Projects', 'Involvements'];
+  const categories: Array<Exclude<ResumeCategory, 'Interests'>> = ['Projects', 'Education', 'Experience', 'Involvements'];
   const isAboutExpanded = expandedCats.About;
 
   return (

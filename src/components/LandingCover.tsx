@@ -223,9 +223,9 @@ const Navbar = ({ containerId }: { containerId: string }) => {
 
   const navLinks = [
     { name: 'About', to: 'about' },
+    { name: 'Projects', to: 'projects' },
     { name: 'Education', to: 'education' },
     { name: 'Experience', to: 'experience' },
-    { name: 'Projects', to: 'projects' },
     { name: 'Involvements', to: 'involvements' },
     { name: 'Contact', to: 'contact' },
   ];
@@ -620,6 +620,15 @@ export default function LandingCover({
             </div>
           </section>
 
+          {/* Projects Section */}
+          <section id="projects" className="scroll-mt-24">
+            <SectionHeader title="Selected Projects" />
+            <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+              {resumeData.filter(i => i.category === 'Projects').map((item) => (
+                <ProjectCard key={item.id} item={item} />
+              ))}
+            </div>
+          </section>
 
           {/* Education Section */}
           <section id="education" className="scroll-mt-24">
@@ -644,16 +653,6 @@ export default function LandingCover({
                   <ExperienceItem key={item.id} item={item} />
                 ))}
               </div>
-            </div>
-          </section>
-
-          {/* Projects Section */}
-          <section id="projects" className="scroll-mt-24">
-            <SectionHeader title="Selected Projects" />
-            <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-              {resumeData.filter(i => i.category === 'Projects').map((item) => (
-                <ProjectCard key={item.id} item={item} />
-              ))}
             </div>
           </section>
 
