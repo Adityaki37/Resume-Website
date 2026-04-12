@@ -112,12 +112,13 @@ const SectionHeader = ({ title }: { title: string }) => (
 const PROJECT_CARD_LINKS: Record<string, { href: string; external?: boolean }> = {
   'hephasbot': { href: 'https://hephasbot.com', external: true },
   'fireboy-watergirl': { href: '/fireboy' },
+  'delphi': { href: 'https://canva.link/chx77tfnity7me0', external: true },
 };
 
 const ProjectCard = ({ item }: { item: any }) => {
   const linkConfig = PROJECT_CARD_LINKS[item.id];
-  const hideFooterArrow = item.id === 'delphi' || item.id === 'arbitrage-app';
-  const hideFooterLabel = item.id === 'delphi' || item.id === 'arbitrage-app';
+  const hideFooterArrow = item.id === 'arbitrage-app';
+  const hideFooterLabel = item.id === 'arbitrage-app';
 
   const cardContent = (
     <div className="group relative bg-[#f4f4f2]/50 backdrop-blur-sm border border-[#d0d0cc]/30 rounded-3xl p-8 hover:bg-black hover:text-white transition-[background-color,color,transform,box-shadow,border-color] duration-500 shadow-sm hover:shadow-2xl flex flex-col h-full">
