@@ -76,6 +76,12 @@ export const landingPageAbout = {
   ],
 };
 
+export const contactLinks = {
+  linkedin: 'https://www.linkedin.com/in/aditya-induri/',
+  github: 'https://github.com/Adityaki37',
+  email: 'mailto:adityainduri37@gmail.com',
+} as const;
+
 export const resumeData: ResumeItem[] = [
   {
     id: 'osu',

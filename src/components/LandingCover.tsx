@@ -1,11 +1,11 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Linkedin, Mail, ArrowRight, Monitor, Menu, X, ChevronsDown, Heart } from 'lucide-react';
+import { Linkedin, Mail, Github, ArrowRight, Monitor, Menu, X, ChevronsDown, Heart } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useMemo, useEffect, memo } from 'react';
-import { landingPageAbout, resumeData } from '@/data/resume';
+import { contactLinks, landingPageAbout, resumeData } from '@/data/resume';
 import { Link as ScrollLink } from 'react-scroll';
 import { useIsMobile } from '@/lib/useIsMobile';
 
@@ -18,25 +18,34 @@ const ARROW_CONFIG = {
   shouldRandomizeWhileLoading: false
 };
 
-const HandDrawnArrow = memo(({ className, style, type = 0 }: { className?: string; style?: React.CSSProperties; type?: number }) => {
-  const paths = [
-    "M15 50 L 85 50 L 65 35 M 85 50 L 65 65", // Clean Horizontal (Right) - Primary Enter
-    "M10 10 Q 50 90 90 10 M 70 30 L 90 10 L 70 5", // Deep Swoop
-    "M10 50 Q 25 25 50 50 T 90 50 M 75 35 L 90 50 L 75 65", // S-Curve
-    "M20 20 C 80 20 80 80 20 80 C 120 80 120 20 180 20 M 160 10 L 180 20 L 160 30", // Loopy Loop
-    "M15 50 L 85 50 L 65 35 M 85 50 L 65 65", // Clean Horizontal (Right) - Project Cards
-    "M10 50 A 40 40 0 1 1 50 90 L 50 50 M 35 65 L 50 50 L 65 65", // Spiral Start
-    "M10 20 L 30 80 L 50 20 L 70 80 L 90 40 M 80 30 L 90 40 L 100 30", // Zig Zag Sketch
-    "M10 50 Q 50 -20 90 50 Q 50 120 10 50 M 20 40 L 10 50 L 25 60", // Infinity Loop
-    "M10 10 C 20 60 80 60 90 10 M 80 25 L 90 10 L 100 25", // U-Turn
-    "M20 50 C 20 80 80 80 80 50 C 80 20 20 20 20 50 M 35 35 L 20 50 L 35 65", // Tight Whirl
-    "M10 50 C 30 50 30 10 50 10 C 70 10 70 50 90 50 M 80 40 L 90 50 L 80 60", // M-Curve
-    "M10 10 Q 90 10 50 50 Q 10 90 90 90 M 75 80 L 90 90 L 75 100", // Z-Swoop
-    "M30 30 C 30 10 50 10 50 30 C 50 50 70 50 70 30 M 60 20 L 70 30 L 60 40", // Cloud Loop
-    "M10 90 L 90 10 M 70 10 L 90 10 L 90 30", // Sharp Straight
-    "M10 50 C 10 10 90 10 90 50 C 90 90 10 90 10 50 M 25 65 L 10 50 L 25 35" // Full Circle Arrow
-  ];
+const HAND_DRAWN_ARROW_PATHS = [
+  "M15 50 L 85 50 L 65 35 M 85 50 L 65 65", // Clean Horizontal (Right) - Primary Enter
+  "M10 10 Q 50 90 90 10 M 70 30 L 90 10 L 70 5", // Deep Swoop
+  "M10 50 Q 25 25 50 50 T 90 50 M 75 35 L 90 50 L 75 65", // S-Curve
+  "M20 20 C 80 20 80 80 20 80 C 120 80 120 20 180 20 M 160 10 L 180 20 L 160 30", // Loopy Loop
+  "M15 50 L 85 50 L 65 35 M 85 50 L 65 65", // Clean Horizontal (Right) - Project Cards
+  "M10 50 A 40 40 0 1 1 50 90 L 50 50 M 35 65 L 50 50 L 65 65", // Spiral Start
+  "M10 20 L 30 80 L 50 20 L 70 80 L 90 40 M 80 30 L 90 40 L 100 30", // Zig Zag Sketch
+  "M10 50 Q 50 -20 90 50 Q 50 120 10 50 M 20 40 L 10 50 L 25 60", // Infinity Loop
+  "M10 10 C 20 60 80 60 90 10 M 80 25 L 90 10 L 100 25", // U-Turn
+  "M20 50 C 20 80 80 80 80 50 C 80 20 20 20 20 50 M 35 35 L 20 50 L 35 65", // Tight Whirl
+  "M10 50 C 30 50 30 10 50 10 C 70 10 70 50 90 50 M 80 40 L 90 50 L 80 60", // M-Curve
+  "M10 10 Q 90 10 50 50 Q 10 90 90 90 M 75 80 L 90 90 L 75 100", // Z-Swoop
+  "M30 30 C 30 10 50 10 50 30 C 50 50 70 50 70 30 M 60 20 L 70 30 L 60 40", // Cloud Loop
+  "M10 90 L 90 10 M 70 10 L 90 10 L 90 30", // Sharp Straight
+  "M10 50 C 10 10 90 10 90 50 C 90 90 10 90 10 50 M 25 65 L 10 50 L 25 35" // Full Circle Arrow
+] as const;
 
+const createSeededRandom = (seed: number) => {
+  let current = seed >>> 0;
+
+  return () => {
+    current = (current * 1664525 + 1013904223) >>> 0;
+    return current / 0x100000000;
+  };
+};
+
+const HandDrawnArrow = memo(({ className, style, type = 0 }: { className?: string; style?: React.CSSProperties; type?: number }) => {
   return (
     <svg
       viewBox="0 0 100 100"
@@ -46,7 +55,7 @@ const HandDrawnArrow = memo(({ className, style, type = 0 }: { className?: strin
       style={style}
     >
       <path
-        d={paths[type % paths.length]}
+        d={HAND_DRAWN_ARROW_PATHS[type % HAND_DRAWN_ARROW_PATHS.length]}
         stroke="currentColor"
         strokeWidth="6"
         strokeLinecap="round"
@@ -59,17 +68,21 @@ HandDrawnArrow.displayName = 'HandDrawnArrow';
 
 const ArrowStorm = memo(({ count = ARROW_CONFIG.count }: { count?: number }) => {
   const arrows = useMemo(() => {
-    return Array.from({ length: count }).map((_, i) => ({
-      id: i,
-      x: Math.random() * 100, // Percentage based for better distribution
-      y: Math.random() * 100, // Percentage based for better distribution
-      rotate: Math.random() * 360,
-      scale: 0.4 + Math.random() * 0.8,
-      delay: Math.random() * -40,
-      duration: 25 + Math.random() * 30,
-      type: Math.floor(Math.random() * 15),
-      opacity: 0.85 + Math.random() * 0.15
-    }));
+    return Array.from({ length: count }).map((_, i) => {
+      const random = createSeededRandom((count + 1) * 1009 + i * 9176);
+
+      return {
+        id: i,
+        x: random() * 100, // Percentage based for better distribution
+        y: random() * 100, // Percentage based for better distribution
+        rotate: random() * 360,
+        scale: 0.4 + random() * 0.8,
+        delay: random() * -40,
+        duration: 25 + random() * 30,
+        type: Math.floor(random() * HAND_DRAWN_ARROW_PATHS.length),
+        opacity: 0.85 + random() * 0.15
+      };
+    });
   }, [count]);
 
   return (
@@ -114,6 +127,12 @@ const PROJECT_CARD_LINKS: Record<string, { href: string; external?: boolean }> =
   'fireboy-watergirl': { href: '/fireboy' },
   'delphi': { href: 'https://canva.link/chx77tfnity7me0', external: true },
 };
+
+const HERO_SOCIAL_LINKS = [
+  { Icon: Linkedin, href: contactLinks.linkedin, label: 'LinkedIn' },
+  { Icon: Github, href: contactLinks.github, label: 'GitHub' },
+  { Icon: Mail, href: contactLinks.email, label: 'Email' },
+] as const;
 
 const ProjectCard = ({ item }: { item: any }) => {
   const linkConfig = PROJECT_CARD_LINKS[item.id];
@@ -496,15 +515,14 @@ export default function LandingCover({
                 </motion.div>
 
                 <div className="flex items-center gap-2 relative">
-                  {[
-                    { Icon: Linkedin, href: "https://www.linkedin.com/in/aditya-induri/" },
-                    { Icon: Mail, href: "mailto:adityainduri37@gmail.com" }
-                  ].map((item, i) => (
+                  {HERO_SOCIAL_LINKS.map((item, i) => (
                     <motion.a
-                      key={i}
+                      key={item.label}
                       href={item.href}
                       target="_blank"
                       rel="noopener noreferrer"
+                      aria-label={item.label}
+                      title={item.label}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.6 + (i * 0.1) }}
@@ -536,6 +554,7 @@ export default function LandingCover({
                     src="/Induri.Aditya_Headshot.jpg"
                     alt="Aditya Induri"
                     fill
+                    sizes="(min-width: 1024px) 420px, 288px"
                     className="object-cover object-[50%_18%] scale-110 grayscale transition-[filter] duration-500 group-hover:grayscale-0"
                     priority
                   />
@@ -678,14 +697,14 @@ export default function LandingCover({
               </p>
               <div className="flex flex-col md:flex-row items-center gap-8">
                 <a
-                  href="mailto:adityainduri37@gmail.com"
+                  href={contactLinks.email}
                   className="px-16 py-8 bg-black text-white rounded-[40px] font-black text-2xl uppercase italic hover:scale-105 transition-transform"
                 >
                   Say Hello
                 </a>
                 <div className="flex items-center gap-4">
                   {[
-                    { Icon: Linkedin, href: "https://www.linkedin.com/in/aditya-induri/" }
+                    { Icon: Linkedin, href: contactLinks.linkedin }
                   ].map((item, i) => (
                     <a
                       key={i}

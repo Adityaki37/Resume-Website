@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import gsap from 'gsap';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { RotateCcw } from 'lucide-react';
-import { resumeData, ResumeItem, cameraConfig, signpostConfig } from '../data/resume';
+import { contactLinks, resumeData, ResumeItem, cameraConfig, signpostConfig } from '../data/resume';
 
 interface InteractiveDeskProps {
   selectedId: string | null;
@@ -17,6 +17,13 @@ interface InteractiveDeskProps {
   onScenePhaseChange?: (phase: 'loading-assets' | 'warming' | 'ready') => void;
   showCover?: boolean;
 }
+
+const GITHUB_ICON_PATHS = [
+  "M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4",
+  "M9 18c-4.51 2-5-2-7-2",
+] as const;
+
+type ContactSegmentType = 'text' | 'linkedin' | 'github' | 'email';
 
 // modelMap removed - using centralized resumeData config
 
@@ -455,12 +462,12 @@ export default function InteractiveDesk({
         contactGroup.position.set(0, 0.45, 0);
         contactGroup.rotation.y = 0.4;
 
-        const totalWidth = 2.2;
-        const hWidth = 1.6;
-        const sWidth = 0.3; // Reduced from 0.4 to keep total width 2.4
+        const totalWidth = 2.5;
+        const hWidth = 1.48;
+        const sWidth = 0.34;
         const defaultFont = '900 72px Inter, sans-serif';
 
-        const createSegment = (type: 'text' | 'linkedin' | 'email', labelOrId: string, xPos: number, width: number, id: string, font: string = defaultFont) => {
+        const createSegment = (type: ContactSegmentType, labelOrId: string, xPos: number, width: number, id: string, font: string = defaultFont) => {
           const segmentGroup = new THREE.Group();
           segmentGroup.position.x = xPos;
           contactGroup.add(segmentGroup);
@@ -506,6 +513,26 @@ export default function InteractiveDesk({
             } else if (type === 'linkedin') {
               ctx.font = 'bold 120px Inter, system-ui, sans-serif';
               ctx.fillText('in', canvas.width / 2, canvas.height / 2);
+            } else if (type === 'github') {
+              try {
+                ctx.save();
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.scale(7.2, 7.2);
+                ctx.translate(-12, -12);
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                GITHUB_ICON_PATHS.forEach((path) => {
+                  ctx.stroke(new Path2D(path));
+                });
+
+                ctx.restore();
+              } catch {
+                ctx.font = 'bold 92px Inter, system-ui, sans-serif';
+                ctx.fillText('GH', canvas.width / 2, canvas.height / 2);
+              }
             } else if (type === 'email') {
               ctx.strokeStyle = '#ffffff';
               ctx.lineWidth = 10;
@@ -551,7 +578,9 @@ export default function InteractiveDesk({
         createLine(-(totalWidth / 2) + hWidth);
         createSegment('linkedin', '', -(totalWidth / 2) + hWidth + sWidth / 2, sWidth, 'ui-linkedin');
         createLine(-(totalWidth / 2) + hWidth + sWidth);
-        createSegment('email', '', -(totalWidth / 2) + hWidth + sWidth + sWidth / 2, sWidth, 'ui-email');
+        createSegment('github', '', -(totalWidth / 2) + hWidth + sWidth + sWidth / 2, sWidth, 'ui-github');
+        createLine(-(totalWidth / 2) + hWidth + sWidth + sWidth);
+        createSegment('email', '', -(totalWidth / 2) + hWidth + sWidth + sWidth + sWidth / 2, sWidth, 'ui-email');
 
         signpostGroup.add(contactGroup);
         contactGroup.rotation.y = 0.25;
@@ -1106,11 +1135,15 @@ export default function InteractiveDesk({
           return;
         }
         if (currentHover === 'ui-linkedin' || currentHover === 'ui-contact-header') {
-          window.open('https://www.linkedin.com/in/aditya-induri/', '_blank');
+          window.open(contactLinks.linkedin, '_blank');
+          return;
+        }
+        if (currentHover === 'ui-github') {
+          window.open(contactLinks.github, '_blank');
           return;
         }
         if (currentHover === 'ui-email') {
-          window.location.href = 'mailto:adityainduri37@gmail.com';
+          window.location.href = contactLinks.email;
           return;
         }
 
