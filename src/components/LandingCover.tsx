@@ -5,7 +5,7 @@ import { Linkedin, Mail, Github, ArrowRight, Monitor, Menu, X, ChevronsDown, Hea
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useMemo, useEffect, memo } from 'react';
-import { contactLinks, landingPageAbout, resumeData } from '@/data/resume';
+import { contactLinks, landingPageAbout, projectLinks, resumeData } from '@/data/resume';
 import { Link as ScrollLink } from 'react-scroll';
 import { useIsMobile } from '@/lib/useIsMobile';
 
@@ -122,33 +122,61 @@ const SectionHeader = ({ title }: { title: string }) => (
   </div>
 );
 
-const PROJECT_CARD_LINKS: Record<string, { href: string; external?: boolean }> = {
-  'hephasbot': { href: 'https://hephasbot.com', external: true },
-  'fireboy-watergirl': { href: '/fireboy' },
-  'delphi': { href: 'https://canva.link/chx77tfnity7me0', external: true },
-};
-
 const HERO_SOCIAL_LINKS = [
   { Icon: Linkedin, href: contactLinks.linkedin, label: 'LinkedIn' },
   { Icon: Github, href: contactLinks.github, label: 'GitHub' },
   { Icon: Mail, href: contactLinks.email, label: 'Email' },
 ] as const;
 
-const ProjectCard = ({ item }: { item: any }) => {
-  const linkConfig = PROJECT_CARD_LINKS[item.id];
-  const hideFooterArrow = item.id === 'arbitrage-app';
-  const hideFooterLabel = item.id === 'arbitrage-app';
+const ProjectActionLink = ({
+  href,
+  label,
+  external = false,
+  icon,
+}: {
+  href: string;
+  label: string;
+  external?: boolean;
+  icon: React.ReactNode;
+}) => {
+  const className = "inline-flex items-center gap-2 rounded-full border border-black/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-500 transition-colors hover:border-black hover:bg-black hover:text-white";
+  const content = (
+    <>
+      {icon}
+      <span>{label}</span>
+    </>
+  );
 
-  const cardContent = (
-    <div className="group relative bg-[#f4f4f2]/50 backdrop-blur-sm border border-[#d0d0cc]/30 rounded-3xl p-8 hover:bg-black hover:text-white transition-[background-color,color,transform,box-shadow,border-color] duration-500 shadow-sm hover:shadow-2xl flex flex-col h-full">
+  if (external) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+        {content}
+      </a>
+    );
+  }
+
+  return (
+    <Link href={href} className={className}>
+      {content}
+    </Link>
+  );
+};
+
+const ProjectCard = ({ item }: { item: any }) => {
+  const linkConfig = projectLinks[item.id as keyof typeof projectLinks];
+  const githubHref = linkConfig?.github;
+  const primaryLink = linkConfig?.primary;
+
+  return (
+    <div className="relative bg-[#f4f4f2]/50 backdrop-blur-sm border border-[#d0d0cc]/30 rounded-3xl p-8 transition-[box-shadow,border-color,transform] duration-300 shadow-sm hover:shadow-xl hover:border-black/10 flex flex-col h-full">
       <div className="flex justify-between items-start mb-6">
-        <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-400 group-hover:text-zinc-500">{item.date}</span>
+        <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-zinc-400">{item.date}</span>
       </div>
-      <h3 className="text-2xl font-black mb-2 tracking-tight text-black group-hover:text-white transition-colors">{item.title}</h3>
-      <p className="text-zinc-500 group-hover:text-zinc-300 font-medium mb-6 text-sm leading-relaxed transition-colors">{item.subtitle}</p>
-      <ul className="space-y-3 mb-8 text-black transition-colors group-hover:text-white">
+      <h3 className="text-2xl font-black mb-2 tracking-tight text-black">{item.title}</h3>
+      <p className="text-zinc-500 font-medium mb-6 text-sm leading-relaxed">{item.subtitle}</p>
+      <ul className="space-y-3 mb-8 text-black">
         {item.bullets.slice(0, 2).map((bullet: string, i: number) => (
-          <li key={i} className="grid grid-cols-[0.5rem_1fr] gap-3 text-sm font-medium leading-relaxed opacity-80 transition-colors">
+          <li key={i} className="grid grid-cols-[0.5rem_1fr] gap-3 text-sm font-medium leading-relaxed opacity-80">
             <span className="flex h-[1.5em] items-center justify-center">
               <span className="h-1 w-1 rounded-full bg-current shrink-0" />
             </span>
@@ -157,34 +185,29 @@ const ProjectCard = ({ item }: { item: any }) => {
         ))}
       </ul>
 
-      <div className="mt-auto pt-4 flex items-center justify-between border-t border-black/5 text-zinc-400 group-hover:border-white/10 group-hover:text-zinc-300">
-        {!hideFooterLabel && (
-          <span className="text-[10px] font-bold uppercase tracking-widest">Project Detail</span>
-        )}
-        {!hideFooterArrow && (
-          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+      <div className="mt-auto pt-4 flex items-center justify-between gap-3 border-t border-black/5 text-zinc-400">
+        <div className="flex items-center gap-2">
+          {githubHref && item.id !== 'delphi' && (
+            <ProjectActionLink
+              href={githubHref}
+              label="GitHub"
+              external
+              icon={<Github className="h-3.5 w-3.5" />}
+            />
+          )}
+        </div>
+
+        {primaryLink && (
+          <ProjectActionLink
+            href={primaryLink.href}
+            label={primaryLink.label}
+            external={primaryLink.external}
+            icon={<ArrowRight className="h-3.5 w-3.5" />}
+          />
         )}
       </div>
     </div>
   );
-
-  if (linkConfig?.external) {
-    return (
-      <a href={linkConfig.href} target="_blank" rel="noopener noreferrer" className="block h-full">
-        {cardContent}
-      </a>
-    );
-  }
-
-  if (linkConfig) {
-    return (
-      <Link href={linkConfig.href} className="block h-full">
-        {cardContent}
-      </Link>
-    );
-  }
-
-  return cardContent;
 };
 
 const EducationItem = ({ item }: { item: any }) => (
@@ -243,8 +266,8 @@ const Navbar = ({ containerId }: { containerId: string }) => {
 
   const navLinks = [
     { name: 'About', to: 'about' },
-    { name: 'Projects', to: 'projects' },
     { name: 'Education', to: 'education' },
+    { name: 'Projects', to: 'projects' },
     { name: 'Experience', to: 'experience' },
     { name: 'Involvements', to: 'involvements' },
     { name: 'Contact', to: 'contact' },
@@ -640,16 +663,6 @@ export default function LandingCover({
             </div>
           </section>
 
-          {/* Projects Section */}
-          <section id="projects" className="scroll-mt-24">
-            <SectionHeader title="Selected Projects" />
-            <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-              {resumeData.filter(i => i.category === 'Projects').map((item) => (
-                <ProjectCard key={item.id} item={item} />
-              ))}
-            </div>
-          </section>
-
           {/* Education Section */}
           <section id="education" className="scroll-mt-24">
             <SectionHeader title="Education" />
@@ -660,6 +673,16 @@ export default function LandingCover({
                   <EducationItem key={item.id} item={item} />
                 ))}
               </div>
+            </div>
+          </section>
+
+          {/* Projects Section */}
+          <section id="projects" className="scroll-mt-24">
+            <SectionHeader title="Selected Projects" />
+            <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+              {resumeData.filter(i => i.category === 'Projects').map((item) => (
+                <ProjectCard key={item.id} item={item} />
+              ))}
             </div>
           </section>
 

@@ -18,6 +18,10 @@ const CATEGORY_ICONS: Record<Exclude<ResumeCategory, 'Interests'>, React.Element
 };
 
 export default function SidebarTree({ selectedId, onSelect }: SidebarTreeProps) {
+  const roomResumeItems = useMemo(
+    () => resumeData.filter(item => item.id !== 'asteroid-run'),
+    []
+  );
   const [isOpen, setIsOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const aboutRef = useRef<HTMLDivElement | null>(null);
@@ -52,7 +56,7 @@ export default function SidebarTree({ selectedId, onSelect }: SidebarTreeProps) 
         return;
       }
 
-      const selectedItem = resumeData.find(item => item.id === selectedId);
+      const selectedItem = roomResumeItems.find(item => item.id === selectedId);
       if (selectedItem) {
         setExpandedCats(prev => ({ ...prev, [selectedItem.category]: true }));
         // Close sidebar on mobile after selection
@@ -69,17 +73,17 @@ export default function SidebarTree({ selectedId, onSelect }: SidebarTreeProps) 
 
   const navigationOrder = useMemo(() => [
     'about-me',
-    ...resumeData
-      .filter(item => item.category === 'Projects')
-      .map(item => item.id),
-    ...resumeData
+    ...roomResumeItems
       .filter(item => item.category === 'Education')
       .map(item => item.id),
-    ...resumeData
+    ...roomResumeItems
+      .filter(item => item.category === 'Projects')
+      .map(item => item.id),
+    ...roomResumeItems
       .filter(item => item.category === 'Experience' && item.id !== 'about-me')
       .map(item => item.id),
     'involvements',
-  ], []);
+  ], [roomResumeItems]);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -90,11 +94,11 @@ export default function SidebarTree({ selectedId, onSelect }: SidebarTreeProps) 
         ? aboutRef
         : selectedId === 'involvements'
           ? involvementsRef
-          : resumeData.find(item => item.id === selectedId)?.category === 'Education'
+          : roomResumeItems.find(item => item.id === selectedId)?.category === 'Education'
             ? educationRef
-            : resumeData.find(item => item.id === selectedId)?.category === 'Experience'
+            : roomResumeItems.find(item => item.id === selectedId)?.category === 'Experience'
               ? experienceRef
-              : resumeData.find(item => item.id === selectedId)?.category === 'Projects'
+              : roomResumeItems.find(item => item.id === selectedId)?.category === 'Projects'
                 ? projectsRef
                 : null;
 
@@ -118,7 +122,7 @@ export default function SidebarTree({ selectedId, onSelect }: SidebarTreeProps) 
     onSelect(navigationOrder[prevIndex]);
   };
 
-  const categories: Array<Exclude<ResumeCategory, 'Interests'>> = ['Projects', 'Education', 'Experience', 'Involvements'];
+  const categories: Array<Exclude<ResumeCategory, 'Interests'>> = ['Education', 'Projects', 'Experience', 'Involvements'];
   const isAboutExpanded = expandedCats.About;
 
   return (
@@ -187,7 +191,7 @@ export default function SidebarTree({ selectedId, onSelect }: SidebarTreeProps) 
           </div>
 
           {categories.map((cat) => {
-            const items = resumeData.filter(item => item.category === cat && item.id !== 'about-me');
+            const items = roomResumeItems.filter(item => item.category === cat && item.id !== 'about-me');
             const isExpanded = expandedCats[cat];
             const Icon = CATEGORY_ICONS[cat];
 

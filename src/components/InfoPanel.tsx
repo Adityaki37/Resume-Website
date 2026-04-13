@@ -1,8 +1,8 @@
 'use client';
 
-import { X, ExternalLink, Calendar } from 'lucide-react';
+import { X, ExternalLink, Calendar, Github } from 'lucide-react';
 import Link from 'next/link';
-import { resumeData } from '../data/resume';
+import { projectLinks, resumeData } from '../data/resume';
 import { cn } from '../lib/utils';
 import { useEffect, useState } from 'react';
 
@@ -23,6 +23,7 @@ const DotBullet = ({ muted = false }: { muted?: boolean }) => (
 export default function InfoPanel({ selectedId, previewId, onClose }: InfoPanelProps) {
   const [isVisible, setIsVisible] = useState(false);
   const item = resumeData.find(i => i.id === selectedId);
+  const projectLinkConfig = item ? projectLinks[item.id as keyof typeof projectLinks] : undefined;
   const involvementItems = resumeData.filter(i => i.category === 'Involvements');
   const isCombinedInvolvements = selectedId === 'involvements';
   const showInterestHeader =
@@ -165,38 +166,40 @@ export default function InfoPanel({ selectedId, previewId, onClose }: InfoPanelP
           </div>
         )}
 
-        {item?.id === 'hephasbot' && (
-          <a
-            href="https://www.hephasbot.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center w-full md:w-auto justify-center md:justify-start px-6 py-3 bg-[#0c0c0c] border border-[#d0d0cc] rounded-xl text-sm font-semibold text-[#fffffe] hover:bg-[#2e2e2c] transition-all shadow-[0_4px_12px_rgba(0,0,0,0.1)] group"
-          >
-            Visit Website
-            <ExternalLink className="w-4 h-4 ml-1.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </a>
-        )}
+        {item?.category === 'Projects' && projectLinkConfig && (
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            {projectLinkConfig.github && item.id !== 'delphi' && (
+              <a
+                href={projectLinkConfig.github}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center w-full md:w-auto justify-center md:justify-start px-6 py-3 bg-[#fffffe] border border-[#d0d0cc] rounded-xl text-sm font-semibold text-[#0c0c0c] hover:bg-[#f4f4f2] transition-all shadow-[0_4px_12px_rgba(0,0,0,0.06)] group"
+              >
+                GitHub
+                <Github className="w-4 h-4 ml-1.5" />
+              </a>
+            )}
 
-        {item?.id === 'fireboy-watergirl' && (
-          <Link
-            href="/fireboy"
-            className="inline-flex items-center w-full md:w-auto justify-center md:justify-start px-6 py-3 bg-[#0c0c0c] border border-[#d0d0cc] rounded-xl text-sm font-semibold text-[#fffffe] hover:bg-[#2e2e2c] transition-all shadow-[0_4px_12px_rgba(0,0,0,0.1)] group"
-          >
-            Visit Website
-            <ExternalLink className="w-4 h-4 ml-1.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </Link>
-        )}
-
-        {item?.id === 'delphi' && (
-          <a
-            href="https://canva.link/chx77tfnity7me0"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center w-full md:w-auto justify-center md:justify-start px-6 py-3 bg-[#0c0c0c] border border-[#d0d0cc] rounded-xl text-sm font-semibold text-[#fffffe] hover:bg-[#2e2e2c] transition-all shadow-[0_4px_12px_rgba(0,0,0,0.1)] group"
-          >
-            Visit Website
-            <ExternalLink className="w-4 h-4 ml-1.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </a>
+            {projectLinkConfig.primary?.external ? (
+              <a
+                href={projectLinkConfig.primary.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center w-full md:w-auto justify-center md:justify-start px-6 py-3 bg-[#0c0c0c] border border-[#d0d0cc] rounded-xl text-sm font-semibold text-[#fffffe] hover:bg-[#2e2e2c] transition-all shadow-[0_4px_12px_rgba(0,0,0,0.1)] group"
+              >
+                {projectLinkConfig.primary.label}
+                <ExternalLink className="w-4 h-4 ml-1.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </a>
+            ) : projectLinkConfig.primary ? (
+              <Link
+                href={projectLinkConfig.primary.href}
+                className="inline-flex items-center w-full md:w-auto justify-center md:justify-start px-6 py-3 bg-[#0c0c0c] border border-[#d0d0cc] rounded-xl text-sm font-semibold text-[#fffffe] hover:bg-[#2e2e2c] transition-all shadow-[0_4px_12px_rgba(0,0,0,0.1)] group"
+              >
+                {projectLinkConfig.primary.label}
+                <ExternalLink className="w-4 h-4 ml-1.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </Link>
+            ) : null}
+          </div>
         )}
       </div>
     </div>

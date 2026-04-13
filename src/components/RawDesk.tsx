@@ -742,6 +742,7 @@ export default function InteractiveDesk({
       // Shared position logic for Sci-Fi layout
       if (item.id === 'arbitrage-app') return; // Now represented by the desk model
       if (item.id === 'fireboy-watergirl') return; // Represented by the desk monitors
+      if (item.id === 'asteroid-run') return; // Cover page only, not part of the 3D room
 
       const pos = item.position;
 

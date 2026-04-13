@@ -82,6 +82,34 @@ export const contactLinks = {
   email: 'mailto:adityainduri37@gmail.com',
 } as const;
 
+export interface ProjectLinkConfig {
+  github?: string;
+  primary?: {
+    href: string;
+    label: string;
+    external?: boolean;
+  };
+}
+
+export const projectLinks: Record<string, ProjectLinkConfig> = {
+  'hephasbot': {
+    github: 'https://github.com/Adityaki37/hephasbot',
+    primary: { href: 'https://www.hephasbot.com/', label: 'Visit Website', external: true },
+  },
+  'fireboy-watergirl': {
+    github: 'https://github.com/Adityaki37/Fireboy-AI',
+    primary: { href: '/fireboy', label: 'Visit Website', external: false },
+  },
+  'asteroid-run': {
+    github: 'https://github.com/Adityaki37/Asteroid-Run',
+    primary: { href: 'https://www.youtube.com/watch?v=Xsz67_xib_Y', label: 'Watch Demo', external: true },
+  },
+  'arbitrage-app': {},
+  'delphi': {
+    primary: { href: 'https://canva.link/chx77tfnity7me0', label: 'Visit Website', external: true },
+  },
+} as const;
+
 export const resumeData: ResumeItem[] = [
   {
     id: 'osu',
@@ -337,6 +365,32 @@ export const resumeData: ResumeItem[] = [
     zoomDistance: 2.8,
     previewConfig: {
       rotation: [0, 25, 0],
+      scale: 1,
+      rotationSpeed: 0.005,
+      autoRotate: true,
+    },
+  },
+  {
+    id: 'asteroid-run',
+    title: 'Asteroid Run',
+    interestTitle: 'Video Games',
+    category: 'Projects',
+    subtitle: 'Co-Developer',
+    date: 'November 2023 - December 2023',
+    bullets: [
+      'Built a C++ arcade game where players move a rocket between lanes, dodge incoming asteroids, and use limited shots to survive',
+    ],
+    interestBullets: ['Enjoy building game experiences that mix quick decision-making, systems design, and playful mechanics.'],
+    scale: 0.75,
+    hoverScale: 1.25,
+    glowEnabled: true,
+    rotation: [0, 0, 0],
+    position: [0, 0, 0],
+    shape: 'computer',
+    color: '#ff6b35',
+    clickable: false,
+    previewConfig: {
+      rotation: [0, -20, 0],
       scale: 1,
       rotationSpeed: 0.005,
       autoRotate: true,
