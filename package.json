@@ -1,7 +1,9 @@
 {
-  "name": "temp-app",
+  "name": "aditya-induri-interactive-resume",
   "version": "0.1.0",
   "private": true,
+  "description": "An interactive 3D resume and portfolio built with Next.js, Tailwind CSS, Framer Motion, and Three.js.",
+  "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+package-lock.json
 /.pnp
 .pnp.js
 .yarn/install-state.gz
@@ -18,6 +19,10 @@
 
 # misc
 .DS_Store
+.codex-temp/
+.vscode/
+/Induri, Aditya Resume.pdf
+*.bak
 *.pem
 
 # debug
