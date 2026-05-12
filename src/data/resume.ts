@@ -91,6 +91,8 @@ export interface ProjectLinkConfig {
   };
 }
 
+export const FIREBOY_WATERGIRL_DEMO_URL = 'https://www.youtube.com/watch?v=to107gIfwyg';
+
 export const projectLinks: Record<string, ProjectLinkConfig> = {
   'hephasbot': {
     github: 'https://github.com/Adityaki37/hephasbot',
@@ -98,7 +100,7 @@ export const projectLinks: Record<string, ProjectLinkConfig> = {
   },
   'fireboy-watergirl': {
     github: 'https://github.com/Adityaki37/Fireboy-AI',
-    primary: { href: '/fireboy', label: 'Visit Website', external: false },
+    primary: { href: FIREBOY_WATERGIRL_DEMO_URL, label: 'Watch Demo', external: true },
   },
   'asteroid-run': {
     github: 'https://github.com/Adityaki37/Asteroid-Run',
