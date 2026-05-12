@@ -2,7 +2,7 @@
 
 An interactive resume and portfolio built with Next.js, React, Tailwind CSS, Framer Motion, and Three.js.
 
-The homepage is a 3D desk scene where each object maps to experience, projects, or interests. The repo also includes supporting long-form pages for a robotics/AI blog entry and a Fireboy and Watergirl AI project journal.
+The homepage is a 3D desk scene where each object maps to experience, projects, or interests. The repo also includes a supporting long-form page for a robotics/AI blog entry, while the Fireboy and Watergirl AI project links route to its YouTube demo.
 
 ## Stack
 
