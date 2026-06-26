@@ -16,6 +16,8 @@ interface InteractiveDeskProps {
   onLoadProgress?: (progress: number) => void;
   onScenePhaseChange?: (phase: 'loading-assets' | 'warming' | 'ready') => void;
   showCover?: boolean;
+  scenePhase?: 'idle' | 'importing' | 'loading-assets' | 'warming' | 'ready';
+  loadingProgress?: number;
 }
 
 const GITHUB_ICON_PATHS = [
@@ -29,7 +31,7 @@ type ContactSegmentType = 'text' | 'linkedin' | 'github' | 'email';
 
 export default function InteractiveDesk({
   selectedId, onSelect, onHover, onBack, onResume,
-  onLoadProgress, onScenePhaseChange, showCover
+  onLoadProgress, onScenePhaseChange, showCover, scenePhase = 'idle', loadingProgress = 0
 }: InteractiveDeskProps) {
   const ACTIVE_PIXEL_RATIO_CAP = 1.5;
   const COVER_PIXEL_RATIO_CAP = 1.0;
@@ -1339,10 +1341,31 @@ export default function InteractiveDesk({
     onSelect(null);
   };
 
+  const showSceneLoading = !showCover && scenePhase !== 'ready';
+
   return (
     <div className="relative w-full h-full min-h-screen bg-[#D0D0CC] overflow-hidden">
       <div className="absolute inset-0 pointer-events-none z-10 shadow-[inset_0_0_100px_rgba(0,0,0,0.05)]" />
       <div ref={mountRef} className="w-full h-full border-none outline-none" />
+
+      {showSceneLoading && (
+        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-[#D0D0CC]/80 backdrop-blur-sm">
+          <div className="flex w-[min(22rem,calc(100vw-3rem))] flex-col items-center gap-4 text-center text-[#1a1a1a]">
+            <span className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#1a1a1a]/55">
+              {scenePhase === 'warming' ? 'Warming scene' : 'Loading scene'}
+            </span>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-black/10">
+              <div
+                className="h-full rounded-full bg-[#1a1a1a] transition-[width] duration-300"
+                style={{ width: `${Math.max(loadingProgress, scenePhase === 'warming' ? 100 : 6)}%` }}
+              />
+            </div>
+            <span className="text-4xl font-black uppercase italic leading-none tracking-tighter">
+              {scenePhase === 'warming' ? 'Almost there' : `${loadingProgress}%`}
+            </span>
+          </div>
+        </div>
+      )}
 
       <button
         onClick={handleRecenter}

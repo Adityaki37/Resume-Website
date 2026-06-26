@@ -376,12 +376,11 @@ export default function LandingCover({
 
   const canEnter = !RESTRICT_MOBILE_ACCESS || !isMobile;
   const showDesktopOnlyState = RESTRICT_MOBILE_ACCESS && isMobile;
-  const isWaitingForScene = !showDesktopOnlyState && !isEnterReady;
-  const buttonLabel =
-    scenePhase === 'ready' ? 'Enter !' : `Loading ${loadingProgress}%`;
+  const isSceneReady = scenePhase === 'ready' || isEnterReady;
+  const buttonLabel = 'Enter !';
 
   const handleStartInteraction = (e: React.MouseEvent) => {
-    if (isRippleActive || isWaitingForScene || !canEnter) return;
+    if (isRippleActive || !canEnter) return;
     setRipplePos({ x: e.clientX, y: e.clientY });
     setIsRippleActive(true);
     setTimeout(() => {
@@ -469,27 +468,19 @@ export default function LandingCover({
                 <motion.div className="flex flex-wrap items-center gap-6">
                   <motion.button
                     onClick={handleStartInteraction}
-                    disabled={isWaitingForScene || !canEnter}
-                    aria-disabled={isWaitingForScene || !canEnter}
-                    whileHover={isWaitingForScene || !canEnter ? {} : { scale: 1.05 }}
-                    whileTap={isWaitingForScene || !canEnter ? {} : { scale: 0.95 }}
+                    disabled={!canEnter}
+                    aria-disabled={!canEnter}
+                    whileHover={!canEnter ? {} : { scale: 1.05 }}
+                    whileTap={!canEnter ? {} : { scale: 0.95 }}
                     className={`group relative flex items-center justify-center gap-4 rounded-[40px] transition-all duration-500 shadow-2xl ${showDesktopOnlyState
                       ? 'w-full max-w-[20rem] px-4 py-4 bg-black text-white border-2 border-black shadow-black/20 cursor-not-allowed self-center sm:self-start'
-                      : isEnterReady
+                      : canEnter
                         ? 'h-[8rem] w-[24rem] max-w-full bg-black text-white border-2 border-black shadow-black/20'
                         : 'h-[8rem] w-[24rem] max-w-full bg-zinc-100 text-zinc-400 cursor-not-allowed border-2 border-zinc-200'
                       }`}
                   >
                     <div className={`flex items-center ${showDesktopOnlyState ? 'gap-3' : 'h-full w-full justify-center px-10'}`}>
-                      {!showDesktopOnlyState && !isEnterReady && (
-                        <div className="flex h-full w-full items-center justify-center">
-                          <span className="block whitespace-nowrap font-black tracking-tighter text-4xl leading-none uppercase italic text-center opacity-50">
-                            {buttonLabel}
-                          </span>
-                        </div>
-                      )}
-
-                      {!showDesktopOnlyState && isEnterReady && (
+                      {!showDesktopOnlyState && (
                         <div className="flex flex-col items-center justify-center gap-2">
                           <div className="relative">
                             <span className="block whitespace-nowrap font-black tracking-tighter text-4xl leading-none uppercase italic text-center">
@@ -508,7 +499,7 @@ export default function LandingCover({
                           <div className="flex items-center gap-2 whitespace-nowrap opacity-60">
                             <Monitor className="h-4 w-4 shrink-0" />
                             <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
-                              Use desktop for full experience
+                              {isSceneReady ? 'Use desktop for full experience' : `Loading ${loadingProgress}%`}
                             </span>
                           </div>
 

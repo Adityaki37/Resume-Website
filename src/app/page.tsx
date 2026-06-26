@@ -190,6 +190,8 @@ export default function Home() {
                   onLoadProgress={handleLoadProgress}
                   onScenePhaseChange={handleScenePhaseChange}
                   showCover={showCover}
+                  scenePhase={desktopScenePhase}
+                  loadingProgress={loadingProgress}
                 />
 
                 <InfoPanel
