@@ -72,7 +72,7 @@ export const involvementsPreviewConfig = {
 export const landingPageAbout = {
   headline: 'Passionate Builder & Operator',
   paragraphs: [
-    "Hi! I'm Aditya Induri, a student studying Finance and Computer Science. I'm passionate about building and scaling ideas from concept to execution, particularly in areas I'm interested in like Robotics and AI. Feel free to check this website out and contact me if anything catches your eye!",
+    "Hi! I'm Aditya Induri, a student studying Finance and Computer Science. I'm passionate about building and scaling ideas from concept to execution. Feel free to check this website out and contact me if anything catches your eye!",
   ],
 };
 
@@ -151,7 +151,7 @@ export const resumeData: ResumeItem[] = [
     subtitle: 'Passionate Builder & Operator',
     //date: 'Founding Future Interfaces',
     bullets: [
-      "Hi! I'm Aditya Induri, a student studying Finance and Computer Science. I'm passionate about building and scaling ideas from concept to execution, particularly in areas I'm interested in like Robotics and AI. Feel free to check this website out and contact me if anything catches your eye!",
+      "Hi! I'm Aditya Induri, a student studying Finance and Computer Science. I'm passionate about building and scaling ideas from concept to execution. Feel free to check this website out and contact me if anything catches your eye!",
       'PS: The assets in the website are related to my interests and have an experience or project tied to them. Hover over and click an asset to explore or simply navigate using the previous and next buttons.',
     ],
     interestBullets: ['Bridging the gap between complex data and intuitive human-centric design.'],
